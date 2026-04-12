@@ -1,0 +1,17 @@
+{
+  "name": "barcelona-stadsspel",
+  "version": "1.0.0",
+  "description": "Barcelona Stadsspel - live multiplayer city game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.18.2",
+    "multer": "^2.1.1",
+    "uuid": "^9.0.0",
+    "ws": "^8.16.0"
+  }
+}
