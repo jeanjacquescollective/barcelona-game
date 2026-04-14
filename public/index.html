@@ -17,7 +17,7 @@
   <div class="header">
     <div>
       <div class="logo">BCN<span>.</span>SPEL</div>
-      <div class="logo-sub">Barcelona Stadsspel 2026</div>
+      <div class="logo-sub">Barcelona Stadsspel 2025</div>
     </div>
     <div class="status-dot">
       <div class="dot" id="status-dot"></div>
@@ -31,6 +31,7 @@
     <button class="nav-btn" id="nav-leaderboard">Klassement</button>
     <button class="nav-btn" id="nav-feed">Feed <span class="notif" id="feed-notif"
         style="display:none">0</span></button>
+    <button class="nav-btn" id="nav-quiz">Quiz <span class="notif" id="quiz-notif" style="display:none">!</span></button>
   </div>
 
   <!-- JOIN VIEW -->
@@ -91,6 +92,30 @@
     </div>
   </div>
 
+  <!-- QUIZ VIEW -->
+  <div class="view" id="view-quiz">
+    <div id="quiz-idle">
+      <div style="text-align:center;padding:48px 20px 24px">
+        <div style="font-size:48px;margin-bottom:12px">🎯</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;margin-bottom:8px">Wacht op de volgende vraag</div>
+        <div style="color:var(--muted);font-size:14px">De begeleider stuurt vragen live. Je krijgt een melding zodra er een nieuwe vraag is.</div>
+      </div>
+    </div>
+    <div id="quiz-active" style="display:none">
+      <div id="quiz-question-card"></div>
+    </div>
+    <div id="quiz-answered" style="display:none">
+      <div style="text-align:center;padding:40px 20px">
+        <div style="font-size:40px;margin-bottom:10px">⏳</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:6px">Antwoord verstuurd!</div>
+        <div style="color:var(--muted);font-size:14px" id="quiz-answered-txt">Wacht op de uitslag...</div>
+      </div>
+    </div>
+    <div id="quiz-result" style="display:none">
+      <div id="quiz-result-card"></div>
+    </div>
+  </div>
+
   <!-- UPLOAD MODAL -->
   <div class="modal-overlay" id="upload-modal">
     <div class="modal">
@@ -112,17 +137,6 @@
   </div>
 
   <div class="toast" id="toast"></div>
-
-  <div class="quiz-modal">
-    <div class="modal">
-      <h3 id="quiz-mission-title">Quiz</h3>
-      <p id="quiz-mission-desc"></p>
-      <div id="quiz-options"></div>
-      <div class="modal-btns">
-        <button class="btn secondary" id="close-quiz-btn">Sluiten</button>
-      </div>
-    </div>
-  </div>
 
   <script src="js/main.js"></script>
 </body>

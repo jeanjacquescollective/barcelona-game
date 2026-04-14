@@ -7,6 +7,11 @@ let currentUploadMission = null;
 let newFeedCount = 0;
 let currentView = 'join';
 
+// Quiz state
+let activeQuestion = null;
+let myAnswer = null;
+let quizNotifCount = 0;
+
 const serverPort = `3000`;
 const serverUrl = `http://localhost:${serverPort}`; // Adjust if your server runs elsewhere
 
@@ -55,6 +60,10 @@ function setupEventListeners() {
         showView('feed');
     });
 
+    document.getElementById('nav-quiz').addEventListener('click', function () {
+        showView('quiz');
+    });
+
 }
 
 // Load saved team from localStorage
@@ -83,8 +92,10 @@ function connectWS() {
         if (data.type === 'init') {
             allTeams = data.teams;
             allUploads = data.uploads;
+            if (data.question) { activeQuestion = data.question; }
             renderLeaderboard();
             renderFeed();
+            renderQuiz();
             // Sync my team data
             if (myTeam) {
                 const updated = allTeams.find(t => t.id === myTeam.id);
@@ -112,7 +123,22 @@ function connectWS() {
         } else if (data.type === 'reset') {
             myTeam = null; localStorage.removeItem('bcn_team');
             allTeams = []; allUploads = [];
+            activeQuestion = null; myAnswer = null;
             renderAll(); showView('join');
+            renderQuiz();
+        } else if (data.type === 'new_question') {
+            activeQuestion = data.question;
+            myAnswer = null;
+            renderQuiz();
+            // Show notification badge on quiz tab
+            if (currentView !== 'quiz') {
+                quizNotifCount++;
+                const notif = document.getElementById('quiz-notif');
+                notif.style.display = 'inline-block';
+            }
+            showToast('Nieuwe quizvraag! Ga naar Quiz.', 'success');
+        } else if (data.type === 'question_closed') {
+            renderQuizResult(data);
         }
     };
 }
@@ -138,6 +164,7 @@ function renderAll() {
     renderMissions();
     renderLeaderboard();
     renderFeed();
+    renderQuiz();
 }
 
 // --- Views ---
@@ -150,6 +177,10 @@ function showView(name) {
     if (name === 'feed') {
         newFeedCount = 0;
         document.getElementById('feed-notif').style.display = 'none';
+    }
+    if (name === 'quiz') {
+        quizNotifCount = 0;
+        document.getElementById('quiz-notif').style.display = 'none';
     }
 }
 
@@ -295,12 +326,11 @@ async function doUpload() {
     btn.textContent = 'Uploaden...'; btn.disabled = true;
 
     const fd = new FormData();
-    fd.append('file', file, file.name);
+    fd.append('file', file);
     fd.append('missionId', currentUploadMission);
-    console.log('Uploading file for mission', currentUploadMission, file);
 
     try {
-        const res = await fetch(serverUrl + `/api/teams/${myTeam.id}/upload`, { method: 'POST', body: fd, headers: {} });
+        const res = await fetch(serverUrl + `/api/teams/${myTeam.id}/upload`, { method: 'POST', body: fd });
         const data = await res.json();
         if (data.error) throw new Error(data.error);
         closeModal();
@@ -393,3 +423,188 @@ document.getElementById('team-name-input').addEventListener('keydown', e => {
 });
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ─── QUIZ ─────────────────────────────────────────────────────────────────────
+function renderQuiz() {
+    const idle     = document.getElementById('quiz-idle');
+    const active   = document.getElementById('quiz-active');
+    const answered = document.getElementById('quiz-answered');
+    const result   = document.getElementById('quiz-result');
+
+    // Hide all first
+    idle.style.display = 'none';
+    active.style.display = 'none';
+    answered.style.display = 'none';
+    result.style.display = 'none';
+
+    if (!activeQuestion) {
+        idle.style.display = 'block';
+        return;
+    }
+
+    if (myAnswer !== null) {
+        answered.style.display = 'block';
+        document.getElementById('quiz-answered-txt').textContent =
+            'Je antwoordde: "' + myAnswer + '". Wacht op de uitslag...';
+        return;
+    }
+
+    // Show active question
+    active.style.display = 'block';
+    const optClasses = ['quiz-opt-a', 'quiz-opt-b', 'quiz-opt-c', 'quiz-opt-d'];
+    const optLabels  = ['A', 'B', 'C', 'D'];
+    let optionsHtml = '';
+
+    if (activeQuestion.type === 'mcq' && activeQuestion.options && activeQuestion.options.length) {
+        optionsHtml = `
+            <div class="quiz-options">
+                ${activeQuestion.options.map((opt, i) => `
+                    <button class="quiz-opt ${optClasses[i]}" onclick="submitAnswer('${escJs(opt)}')">
+                        <span style="opacity:.5;font-size:12px;display:block;margin-bottom:3px">${optLabels[i]}</span>
+                        ${escHtml(opt)}
+                    </button>
+                `).join('')}
+            </div>`;
+    } else {
+        optionsHtml = `
+            <div class="quiz-open-wrap">
+                <input class="input" id="quiz-open-input" type="text"
+                    placeholder="Typ je antwoord..." autocomplete="off"
+                    onkeydown="if(event.key==='Enter') submitOpenAnswer()">
+            </div>
+            <button class="btn" onclick="submitOpenAnswer()" style="width:100%">Antwoord versturen →</button>`;
+    }
+
+    document.getElementById('quiz-question-card').innerHTML = `
+        <div class="quiz-card">
+            <div class="quiz-label">Live vraag · +${activeQuestion.pts} punten voor het eerste juiste antwoord</div>
+            <div class="quiz-question">${escHtml(activeQuestion.question)}</div>
+            ${optionsHtml}
+            <div class="quiz-pts">${activeQuestion.type === 'mcq' ? 'Kies een antwoord hierboven.' : 'Typ je antwoord en druk op Enter of de knop.'}</div>
+        </div>`;
+}
+
+function submitOpenAnswer() {
+    const input = document.getElementById('quiz-open-input');
+    if (!input) return;
+    const val = input.value.trim();
+    if (!val) return;
+    submitAnswer(val);
+}
+
+async function submitAnswer(answer) {
+    if (!myTeam) return showToast('Maak eerst een team aan!', 'error');
+    if (myAnswer !== null) return;
+
+    myAnswer = answer;
+
+    const res = await fetch('/api/quiz/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId: myTeam.id, answer })
+    });
+    const data = await res.json();
+
+    if (data.error === 'Already answered') {
+        showToast('Je hebt al geantwoord!', 'error');
+        return;
+    }
+    if (data.error) {
+        showToast(data.error, 'error');
+        myAnswer = null;
+        return;
+    }
+
+    renderQuiz();
+}
+
+function renderQuizResult(data) {
+    // Update activeQuestion and myAnswer state
+    activeQuestion = null;
+
+    const idle     = document.getElementById('quiz-idle');
+    const active   = document.getElementById('quiz-active');
+    const answered = document.getElementById('quiz-answered');
+    const result   = document.getElementById('quiz-result');
+
+    idle.style.display = 'none';
+    active.style.display = 'none';
+    answered.style.display = 'none';
+    result.style.display = 'block';
+
+    // Find my result
+    const myResult = myTeam ? data.results.find(r => r.teamId === myTeam.id) : null;
+    const correct  = myResult && myResult.correct;
+    const awarded  = myResult ? myResult.awarded : 0;
+    const didAnswer = myAnswer !== null;
+
+    let banner = '';
+    if (!didAnswer) {
+        banner = `
+            <div class="result-wrong-banner">
+                <div class="result-icon">😴</div>
+                <div class="result-title">Niet geantwoord</div>
+                <div class="result-sub">Je hebt deze vraag gemist.</div>
+            </div>`;
+    } else if (correct) {
+        banner = `
+            <div class="result-correct-banner">
+                <div class="result-icon">🎉</div>
+                <div class="result-title" style="color:var(--green)">Juist! +${awarded} punten</div>
+                <div class="result-sub">${awarded === activeQuestion?.pts ? 'Eerste juiste antwoord!' : 'Goed, maar iemand was sneller.'}</div>
+            </div>`;
+    } else {
+        banner = `
+            <div class="result-wrong-banner">
+                <div class="result-icon">❌</div>
+                <div class="result-title" style="color:var(--red)">Fout antwoord</div>
+                <div class="result-sub">Je antwoordde: "${escHtml(myAnswer || '')}"</div>
+            </div>`;
+    }
+
+    // Top 3 correct answerers
+    const correct3 = data.results.filter(r => r.correct).slice(0, 3);
+    const podium = correct3.length ? `
+        <div style="margin-top:12px">
+            <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase">Correcte antwoorden</div>
+            ${correct3.map((r, i) => `
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border-radius:var(--radius-sm);margin-bottom:6px;border:1px solid rgba(39,174,96,.2)">
+                    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted2);min-width:20px">${i + 1}</div>
+                    <div style="width:8px;height:8px;border-radius:50%;background:${r.teamColor};flex-shrink:0"></div>
+                    <div style="flex:1;font-weight:600;font-size:13px">${escHtml(r.teamName)}</div>
+                    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green)">+${r.awarded}</div>
+                </div>`).join('')}
+        </div>` : '';
+
+    document.getElementById('quiz-result-card').innerHTML = `
+        <div style="padding-bottom:16px">
+            ${banner}
+            <div class="result-answer-reveal">
+                Correct antwoord: <strong>${escHtml(data.answer)}</strong>
+            </div>
+            ${podium}
+            <button class="btn secondary" onclick="resetQuizView()" style="width:100%;margin-top:14px">Sluiten</button>
+        </div>`;
+
+    myAnswer = null;
+
+    // Update scores
+    if (data.teams) { allTeams = data.teams; renderLeaderboard(); }
+    if (myTeam) {
+        const updated = data.teams && data.teams.find(t => t.id === myTeam.id);
+        if (updated) { myTeam = updated; localStorage.setItem('bcn_team', JSON.stringify(myTeam)); updateTeamBadge(); }
+    }
+}
+
+function resetQuizView() {
+    document.getElementById('quiz-result').style.display = 'none';
+    document.getElementById('quiz-idle').style.display = 'block';
+}
+
+function escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escJs(s) {
+    return String(s || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+}

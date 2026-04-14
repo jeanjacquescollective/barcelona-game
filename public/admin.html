@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — BCN Spel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>BCN<span>.</span>ADMIN</h1>
+    <p>Voer het adminwachtwoord in om verder te gaan.</p>
+    <div class="label" style="text-align:left;margin-bottom:6px">Wachtwoord</div>
+    <input class="inp" type="password" id="pw-input" placeholder="••••••••••" style="margin-bottom:14px">
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Inloggen</button>
+    <div id="login-error" style="color:var(--red);font-size:13px;margin-top:10px;display:none">Verkeerd wachtwoord.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">BCN<span>.</span>ADMIN</div>
+    <div class="topbar-badge">Admin paneel</div>
+    <div class="ws-status"><div class="dot" id="ws-dot"></div><span id="ws-txt">Verbinden...</span></div>
+    <button class="btn btn-ghost btn-sm" onclick="doReset()" style="margin-left:8px">Reset alles</button>
+  </div>
+
+  <div class="main">
+    <!-- LEFT: quiz management -->
+    <div class="left">
+
+      <!-- Active question -->
+      <div class="section" id="active-section" style="display:none">
+        <div class="sh">Live vraag <span class="answer-count" id="answer-count">0 antwoorden</span></div>
+        <div class="active-q-display" id="active-q-display"></div>
+        <button class="btn btn-red" onclick="closeQuestion()">Vraag sluiten & punten toekennen</button>
+      </div>
+
+      <!-- Last result -->
+      <div class="section" id="result-section" style="display:none">
+        <div class="sh">Resultaten <span class="pill" id="result-answer-pill"></span></div>
+        <div id="result-list"></div>
+      </div>
+
+      <!-- Push question -->
+      <div class="section">
+        <div class="sh">Vraag pushen</div>
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('presets')">Presets</button>
+          <button class="tab" onclick="switchTab('custom')">Zelf maken</button>
+          <button class="tab" onclick="switchTab('minigames')">Minigame ideeën</button>
+        </div>
+
+        <!-- PRESETS -->
+        <div class="tab-content active" id="tab-presets">
+          <div class="preset-grid" id="preset-grid"></div>
+          <button class="btn btn-primary" onclick="pushPreset()" id="push-preset-btn" disabled>Geselecteerde vraag pushen →</button>
+        </div>
+
+        <!-- CUSTOM -->
+        <div class="tab-content" id="tab-custom">
+          <div class="label">Type</div>
+          <select class="inp" id="q-type" style="margin-bottom:10px" onchange="toggleOptions()">
+            <option value="mcq">Multiple choice (4 opties)</option>
+            <option value="open">Open vraag (tekst)</option>
+          </select>
+          <div class="label">Vraag</div>
+          <input class="inp" id="q-question" placeholder="Typ de vraag..." style="margin-bottom:10px">
+          <div id="options-wrap">
+            <div class="label">Opties (4 stuks)</div>
+            <div class="inp-row"><input class="inp" id="opt-a" placeholder="Optie A"><input class="inp" id="opt-b" placeholder="Optie B"></div>
+            <div class="inp-row" style="margin-bottom:10px"><input class="inp" id="opt-c" placeholder="Optie C"><input class="inp" id="opt-d" placeholder="Optie D"></div>
+          </div>
+          <div class="label">Correct antwoord</div>
+          <input class="inp" id="q-answer" placeholder="Exact correct antwoord" style="margin-bottom:10px">
+          <div class="label">Punten voor eerste juiste antwoord</div>
+          <input class="inp" id="q-pts" type="number" value="20" min="5" max="100" style="margin-bottom:14px">
+          <button class="btn btn-primary" onclick="pushCustom()">Vraag pushen →</button>
+        </div>
+
+        <!-- MINIGAME IDEAS -->
+        <div class="tab-content" id="tab-minigames">
+          <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Ideeën voor live minigames die je als admin kunt aansturen. Niet automatisch — jij bepaalt de punten handmatig via het klassement.</p>
+          <div class="mg-card">
+            <div class="mg-icon">🎤</div>
+            <div>
+              <div class="mg-title">Raadspeaker</div>
+              <div class="mg-desc">Eén persoon per team beschrijft een woord zonder het te zeggen. De admin zegt welk woord. Snelste team dat het raadt krijgt punten.</div>
+              <div class="mg-tag">live · handmatige punten</div>
+            </div>
+          </div>
+          <div class="mg-card">
+            <div class="mg-icon">📸</div>
+            <div>
+              <div class="mg-title">Fotosprint</div>
+              <div class="mg-desc">Admin zegt een opdracht via de quiz feed ("Stuur een foto van jullie met een hond"). Eerste team die uploadt wint. Controleer via de Feed.</div>
+              <div class="mg-tag">live · upload race</div>
+            </div>
+          </div>
+          <div class="mg-card">
+            <div class="mg-icon">🔢</div>
+            <div>
+              <div class="mg-title">Raad het getal</div>
+              <div class="mg-desc">Push een open vraag met een getal als antwoord. Wie het dichtst zit wint — gebruik de "score aanpassen" functie in het klassement.</div>
+              <div class="mg-tag">open vraag · manueel beoordelen</div>
+            </div>
+          </div>
+          <div class="mg-card">
+            <div class="mg-icon">⚡</div>
+            <div>
+              <div class="mg-title">Speed Round</div>
+              <div class="mg-desc">Push 5 vragen snel achter elkaar (30 sec elk). Sluit elke vraag meteen na 30 sec. Alleen de eerste met het juiste antwoord scoort.</div>
+              <div class="mg-tag">rapid fire · meerdere vragen</div>
+            </div>
+          </div>
+          <div class="mg-card">
+            <div class="mg-icon">🗺️</div>
+            <div>
+              <div class="mg-title">Barcelona Locatie Quiz</div>
+              <div class="mg-desc">Zeg een GPS-coördinaat of beschrijving. Teams moeten zeggen welke landmark dat is. Push als open vraag.</div>
+              <div class="mg-tag">open vraag · barcelona-specifiek</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question history -->
+      <div class="section">
+        <div class="sh">Vraaggeschiedenis <span class="pill" id="hist-count">0</span></div>
+        <div id="hist-list"><div style="color:var(--muted);font-size:13px">Nog geen gesloten vragen.</div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: leaderboard -->
+    <div class="right">
+      <div class="sh">Klassement <span class="pill" id="team-count">0 teams</span></div>
+      <div id="lb-list"><div style="color:var(--muted);font-size:13px">Nog geen teams.</div></div>
+
+      <div style="margin-top:20px">
+        <div class="sh" style="font-size:16px">Score aanpassen</div>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:10px">Gebruik + / − naast elk team om handmatig punten toe te voegen of af te trekken.</p>
+      </div>
+
+      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
+        <div class="sh" style="font-size:16px">Supabase status</div>
+        <div id="supabase-status" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--muted)">Controleren...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let adminPw = '';
+let ws = null;
+let allTeams = [];
+let activeQ = null;
+let selectedPreset = null;
+let presets = [];
+let history = [];
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+document.getElementById('pw-input').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+async function doLogin() {
+  const pw = document.getElementById('pw-input').value;
+  const res = await fetch('/api/admin/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:pw}) });
+  if (res.ok) {
+    adminPw = pw;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    init();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  presets = await adminApi('GET', '/api/admin/presets');
+  history = await adminApi('GET', '/api/admin/history');
+  renderPresets();
+  renderHistory();
+  connectWS();
+  checkSupabase();
+}
+
+function adminApi(method, path, body) {
+  const opts = { method, headers: { 'Content-Type':'application/json', 'x-admin-password': adminPw } };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(path, opts).then(r => r.json());
+}
+
+// ─── WS ───────────────────────────────────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+  ws.onopen = () => { document.getElementById('ws-dot').className='dot live'; document.getElementById('ws-txt').textContent='Live'; };
+  ws.onclose = () => { document.getElementById('ws-dot').className='dot'; document.getElementById('ws-txt').textContent='Offline'; setTimeout(connectWS,3000); };
+  ws.onmessage = (e) => {
+    const d = JSON.parse(e.data);
+    if (d.type === 'init') {
+      allTeams = d.teams;
+      if (d.question) { activeQ = d.question; renderActiveQ(); }
+      renderLB();
+    } else if (d.type === 'teams_update') {
+      allTeams = d.teams; renderLB();
+    } else if (d.type === 'answer_received') {
+      document.getElementById('answer-count').textContent = d.count + ' antwoord' + (d.count===1?'':'en');
+      toast(`${d.teamName} heeft geantwoord`, 'ok');
+    } else if (d.type === 'question_closed') {
+      activeQ = null;
+      renderActiveQ();
+      renderResults(d);
+      allTeams = d.teams; renderLB();
+    } else if (d.type === 'reset') {
+      allTeams=[]; activeQ=null; history=[];
+      renderLB(); renderActiveQ(); renderHistory();
+    }
+  };
+}
+
+// ─── LEADERBOARD ──────────────────────────────────────────────────────────────
+function renderLB() {
+  const el = document.getElementById('lb-list');
+  document.getElementById('team-count').textContent = allTeams.length + ' team' + (allTeams.length===1?'':'s');
+  if (!allTeams.length) { el.innerHTML='<div style="color:var(--muted);font-size:13px">Nog geen teams.</div>'; return; }
+  const ranks = ['gold','silver','bronze'];
+  el.innerHTML = allTeams.map((t,i) => `
+    <div class="lb-row">
+      <div class="lb-rank ${ranks[i]||''}">${i+1}</div>
+      <div class="lb-dot" style="background:${t.color}"></div>
+      <div style="flex:1">
+        <div class="lb-name">${esc(t.name)}</div>
+        <div class="lb-sub">${t.completedMissions.length} opdrachten</div>
+      </div>
+      <div class="lb-score">${t.score}</div>
+      <div class="score-adj">
+        <button class="adj-btn" onclick="adjScore('${t.id}',10)" title="+10">+</button>
+        <button class="adj-btn" onclick="adjScore('${t.id}',-10)" title="-10">−</button>
+      </div>
+    </div>`).join('');
+}
+
+async function adjScore(teamId, delta) {
+  await adminApi('POST', `/api/admin/teams/${teamId}/score`, { delta });
+}
+
+// ─── PRESETS ──────────────────────────────────────────────────────────────────
+function renderPresets() {
+  document.getElementById('preset-grid').innerHTML = presets.map((p,i) => `
+    <div class="preset-card" id="pc-${i}" onclick="selectPreset(${i})">
+      <div class="preset-type">${p.type === 'mcq' ? '4 opties' : 'open'}</div>
+      <div class="preset-q">${esc(p.question)}</div>
+      <div class="preset-pts">+${p.pts} pt</div>
+    </div>`).join('');
+}
+
+function selectPreset(i) {
+  document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('pc-'+i).classList.add('selected');
+  selectedPreset = i;
+  document.getElementById('push-preset-btn').disabled = false;
+}
+
+async function pushPreset() {
+  if (selectedPreset === null) return;
+  if (activeQ) { if(!confirm('Er is al een actieve vraag. Toch vervangen?')) return; }
+  await adminApi('POST', '/api/admin/question', { presetIndex: selectedPreset });
+  activeQ = presets[selectedPreset];
+  renderActiveQ();
+  toast('Vraag gepusht!', 'ok');
+  selectedPreset = null;
+  document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('push-preset-btn').disabled = true;
+}
+
+// ─── CUSTOM ───────────────────────────────────────────────────────────────────
+function toggleOptions() {
+  const isMcq = document.getElementById('q-type').value === 'mcq';
+  document.getElementById('options-wrap').style.display = isMcq ? 'block' : 'none';
+}
+
+async function pushCustom() {
+  const type     = document.getElementById('q-type').value;
+  const question = document.getElementById('q-question').value.trim();
+  const answer   = document.getElementById('q-answer').value.trim();
+  const pts      = parseInt(document.getElementById('q-pts').value) || 20;
+  if (!question || !answer) return toast('Vul vraag en antwoord in', 'err');
+  let options = [];
+  if (type === 'mcq') {
+    options = ['opt-a','opt-b','opt-c','opt-d'].map(id => document.getElementById(id).value.trim()).filter(Boolean);
+    if (options.length < 2) return toast('Voeg minstens 2 opties in', 'err');
+  }
+  if (activeQ) { if(!confirm('Er is al een actieve vraag. Toch vervangen?')) return; }
+  await adminApi('POST', '/api/admin/question', { type, question, options, answer, pts });
+  renderActiveQ();
+  toast('Vraag gepusht!', 'ok');
+}
+
+// ─── ACTIVE QUESTION ──────────────────────────────────────────────────────────
+function renderActiveQ() {
+  const sec = document.getElementById('active-section');
+  const disp = document.getElementById('active-q-display');
+  if (!activeQ) { sec.style.display='none'; return; }
+  sec.style.display='block';
+  document.getElementById('answer-count').textContent = '0 antwoorden';
+  const opts = activeQ.options?.length
+    ? `<div class="aq-options">${activeQ.options.map(o=>`<div class="aq-opt">${esc(o)}</div>`).join('')}</div>` : '';
+  disp.innerHTML = `
+    <div class="aq-label">Actieve vraag · ${activeQ.type === 'mcq' ? 'Multiple choice' : 'Open'} · +${activeQ.pts} pt</div>
+    <div class="aq-question">${esc(activeQ.question)}</div>
+    ${opts}`;
+}
+
+async function closeQuestion() {
+  const res = await adminApi('POST', '/api/admin/question/close');
+  if (res.error) return toast(res.error, 'err');
+  history = await adminApi('GET', '/api/admin/history');
+  renderHistory();
+  toast('Vraag gesloten, punten toegekend!', 'ok');
+}
+
+// ─── RESULTS ─────────────────────────────────────────────────────────────────
+function renderResults(d) {
+  const sec = document.getElementById('result-section');
+  sec.style.display = 'block';
+  document.getElementById('result-answer-pill').textContent = 'Antwoord: ' + d.answer;
+  document.getElementById('result-list').innerHTML = d.results.length
+    ? d.results.map(r => `
+      <div class="result-row ${r.correct?'correct':'wrong'}">
+        <div class="lb-dot" style="background:${r.teamColor}"></div>
+        <div class="result-name">${esc(r.teamName)}</div>
+        <div class="result-answer">${esc(r.answer)}</div>
+        <div class="result-pts ${r.awarded>0?'pos':'zero'}">${r.awarded>0?'+'+r.awarded:'✗'}</div>
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px">Niemand heeft geantwoord.</div>';
+}
+
+// ─── HISTORY ──────────────────────────────────────────────────────────────────
+function renderHistory() {
+  document.getElementById('hist-count').textContent = history.length;
+  document.getElementById('hist-list').innerHTML = history.length
+    ? history.map(h => `
+      <div class="hist-item">
+        <div class="hist-q">${esc(h.question)}</div>
+        <div class="hist-ans">Antwoord: ${esc(h.answer)} · ${h.results?.length||0} antw.</div>
+      </div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px">Nog geen gesloten vragen.</div>';
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ─── RESET ────────────────────────────────────────────────────────────────────
+async function doReset() {
+  if (!confirm('Alles wissen? Teams, scores, uploads en vragen worden verwijderd.')) return;
+  await adminApi('POST', '/api/reset');
+  toast('Alles gereset!', 'ok');
+}
+
+// ─── SUPABASE CHECK ───────────────────────────────────────────────────────────
+async function checkSupabase() {
+  const el = document.getElementById('supabase-status');
+  try {
+    const res = await fetch('/api/teams');
+    el.innerHTML = res.ok
+      ? '<span style="color:var(--muted)">Server draait (in-memory modus). Stel SUPABASE_URL + SUPABASE_SERVICE_KEY in als env variabelen voor persistentie.</span>'
+      : '<span style="color:var(--red)">Server niet bereikbaar</span>';
+  } catch(e) { el.innerHTML = '<span style="color:var(--red)">Server niet bereikbaar</span>'; }
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.className = `toast ${type}`, 2500);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>

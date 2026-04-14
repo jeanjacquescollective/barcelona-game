@@ -293,20 +293,74 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-/* QUIZ MODAL */
-.quiz-modal { 
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.75);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100; padding: 20px;
-  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+/* QUIZ VIEW */
+.quiz-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
 }
-.quiz-modal.open { opacity: 1; pointer-events: all; }
-.quiz-modal .modal {
+.quiz-label {
+  font-size: 11px; font-family: 'DM Mono', monospace;
+  color: var(--accent); letter-spacing: .08em; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.quiz-question {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px; letter-spacing: .02em; line-height: 1.2;
+  margin-bottom: 20px;
+}
+.quiz-options {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 16px;
+}
+.quiz-opt {
+  padding: 14px 12px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; text-align: center;
+  transition: all .15s; font-family: 'DM Sans', sans-serif;
+}
+.quiz-opt:hover { border-color: var(--accent); background: rgba(255,107,53,.08); }
+.quiz-opt.selected { border-color: var(--accent); background: rgba(255,107,53,.15); color: var(--accent); }
+.quiz-opt-a { border-color: rgba(74,144,217,.5); }
+.quiz-opt-a:hover, .quiz-opt-a.selected { border-color: #4A90D9; background: rgba(74,144,217,.12); color: #4A90D9; }
+.quiz-opt-b { border-color: rgba(232,93,74,.5); }
+.quiz-opt-b:hover, .quiz-opt-b.selected { border-color: #E85D4A; background: rgba(232,93,74,.12); color: #E85D4A; }
+.quiz-opt-c { border-color: rgba(39,174,96,.5); }
+.quiz-opt-c:hover, .quiz-opt-c.selected { border-color: #27AE60; background: rgba(39,174,96,.12); color: #27AE60; }
+.quiz-opt-d { border-color: rgba(155,89,182,.5); }
+.quiz-opt-d:hover, .quiz-opt-d.selected { border-color: #9B59B6; background: rgba(155,89,182,.12); color: #9B59B6; }
+.quiz-open-wrap { margin-bottom: 14px; }
+.quiz-pts { font-size: 13px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 14px; }
+.result-correct-banner {
+  background: rgba(39,174,96,.12); border: 1px solid rgba(39,174,96,.4);
+  border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 16px;
+}
+.result-wrong-banner {
+  background: rgba(232,93,74,.08); border: 1px solid rgba(232,93,74,.3);
+  border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 16px;
+}
+.result-icon { font-size: 36px; margin-bottom: 6px; }
+.result-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: .04em; margin-bottom: 4px; }
+.result-sub { font-size: 14px; color: var(--muted); }
+.result-answer-reveal {
   background: var(--surface); border: 1px solid var(--border2);
-  border-radius: var(--radius); padding: 24px;
-  width: 100%; max-width: 420px;
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  font-size: 14px; color: var(--muted);
 }
-.quiz-modal h3 { font-family: 'Bebas Neue', sans-serif; font-size: 22px; margin-bottom: 6px; }
-.quiz-modal p { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
-#quiz-options { display: flex; flex-direction: column; gap: 10px; }
+.result-answer-reveal strong { color: var(--text); }
+.quiz-notification {
+  background: rgba(255,107,53,.1); border: 1px solid rgba(255,107,53,.4);
+  border-radius: var(--radius); padding: 16px 20px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  cursor: pointer; transition: background .15s;
+}
+.quiz-notification:hover { background: rgba(255,107,53,.16); }
+.quiz-notif-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex-shrink: 0; animation: pulse 1.5s infinite; }
+.quiz-notif-text { flex: 1; font-size: 14px; font-weight: 600; }
+.quiz-notif-sub { font-size: 12px; color: var(--muted); }
