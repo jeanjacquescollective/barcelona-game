@@ -17,50 +17,50 @@ const serverUrl = `http://localhost:${serverPort}`; // Adjust if your server run
 
 function setupEventListeners() {
     // Join Team Button
-    document.getElementById('join-team-btn').addEventListener('click', joinTeam);
+    document.querySelector('#join-team-btn').addEventListener('click', joinTeam);
 
     // Go to Missions Button
-    document.getElementById('go-to-missions-btn').addEventListener('click', function () {
+    document.querySelector('#go-to-missions-btn').addEventListener('click', function () {
         showView('missions');
     });
 
     // Leave Team Button
-    document.getElementById('leave-team-btn').addEventListener('click', leaveTeam);
+    document.querySelector('#leave-team-btn').addEventListener('click', leaveTeam);
 
     // Upload Zone Click
-    document.getElementById('upload-zone').addEventListener('click', function () {
-        document.getElementById('file-input').click();
+    document.querySelector('#upload-zone').addEventListener('click', function () {
+        document.querySelector('#file-input').click();
     });
 
     // File Input Change
-    document.getElementById('file-input').addEventListener('change', function () {
+    document.querySelector('#file-input').addEventListener('change', function () {
         previewFile(this);
     });
 
     // Cancel Upload Button
-    document.getElementById('cancel-upload-btn').addEventListener('click', closeModal);
+    document.querySelector('#cancel-upload-btn').addEventListener('click', closeModal);
 
     // Upload Button
-    document.getElementById('upload-btn').addEventListener('click', doUpload);
+    document.querySelector('#upload-btn').addEventListener('click', doUpload);
 
     // Navigation Buttons
-    document.getElementById('nav-join').addEventListener('click', function () {
+    document.querySelector('#nav-join').addEventListener('click', function () {
         showView('join');
     });
 
-    document.getElementById('nav-missions').addEventListener('click', function () {
+    document.querySelector('#nav-missions').addEventListener('click', function () {
         showView('missions');
     });
 
-    document.getElementById('nav-leaderboard').addEventListener('click', function () {
+    document.querySelector('#nav-leaderboard').addEventListener('click', function () {
         showView('leaderboard');
     });
 
-    document.getElementById('nav-feed').addEventListener('click', function () {
+    document.querySelector('#nav-feed').addEventListener('click', function () {
         showView('feed');
     });
 
-    document.getElementById('nav-quiz').addEventListener('click', function () {
+    document.querySelector('#nav-quiz').addEventListener('click', function () {
         showView('quiz');
     });
 
@@ -77,13 +77,13 @@ function connectWS() {
     ws = new WebSocket(`${proto}://${location.hostname}:${serverPort}`);
 
     ws.onopen = () => {
-        document.getElementById('status-dot').className = 'dot live';
-        document.getElementById('status-text').textContent = 'Live';
+        document.querySelector('#status-dot').className = 'dot live';
+        document.querySelector('#status-text').textContent = 'Live';
     };
 
     ws.onclose = () => {
-        document.getElementById('status-dot').className = 'dot';
-        document.getElementById('status-text').textContent = 'Offline';
+        document.querySelector('#status-dot').className = 'dot';
+        document.querySelector('#status-text').textContent = 'Offline';
         setTimeout(connectWS, 3000);
     };
 
@@ -113,7 +113,7 @@ function connectWS() {
             renderFeed();
             if (currentView !== 'feed') {
                 newFeedCount++;
-                const notif = document.getElementById('feed-notif');
+                const notif = document.querySelector('#feed-notif');
                 notif.textContent = newFeedCount;
                 notif.style.display = 'inline-block';
             }
@@ -133,7 +133,7 @@ function connectWS() {
             // Show notification badge on quiz tab
             if (currentView !== 'quiz') {
                 quizNotifCount++;
-                const notif = document.getElementById('quiz-notif');
+                const notif = document.querySelector('#quiz-notif');
                 notif.style.display = 'inline-block';
             }
             showToast('Nieuwe quizvraag! Ga naar Quiz.', 'success');
@@ -176,17 +176,17 @@ function showView(name) {
     document.getElementById(`nav-${name}`).classList.add('active');
     if (name === 'feed') {
         newFeedCount = 0;
-        document.getElementById('feed-notif').style.display = 'none';
+        document.querySelector('#feed-notif').style.display = 'none';
     }
     if (name === 'quiz') {
         quizNotifCount = 0;
-        document.getElementById('quiz-notif').style.display = 'none';
+        document.querySelector('#quiz-notif').style.display = 'none';
     }
 }
 
 // --- Team ---
 async function joinTeam() {
-    const name = document.getElementById('team-name-input').value.trim();
+    const name = document.querySelector('#team-name-input').value.trim();
     if (!name) return showError('Geef een teamnaam in.');
     const res = await api('POST', serverUrl + '/api/teams', { name });
     if (res.error) return showError(res.error === 'Team name already taken' ? 'Deze naam is al bezet.' : res.error);
@@ -207,18 +207,18 @@ function leaveTeam() {
 
 function updateJoinView() {
     if (myTeam) {
-        document.getElementById('join-form-wrap').style.display = 'none';
-        document.getElementById('team-info-wrap').style.display = 'block';
+        document.querySelector('#join-form-wrap').style.display = 'none';
+        document.querySelector('#team-info-wrap').style.display = 'block';
         updateTeamBadge();
     } else {
-        document.getElementById('join-form-wrap').style.display = 'block';
-        document.getElementById('team-info-wrap').style.display = 'none';
+        document.querySelector('#join-form-wrap').style.display = 'block';
+        document.querySelector('#team-info-wrap').style.display = 'none';
     }
 }
 
 function updateTeamBadge() {
     if (!myTeam) return;
-    document.getElementById('team-badge').innerHTML = `
+    document.querySelector('#team-badge').innerHTML = `
     <div class="team-color-dot" style="background:${myTeam.color}"></div>
     <div>
       <div class="team-badge-name">${myTeam.name}</div>
@@ -229,7 +229,7 @@ function updateTeamBadge() {
 }
 
 function showError(msg) {
-    const el = document.getElementById('join-error');
+    const el = document.querySelector('#join-error');
     el.textContent = msg; el.style.display = 'block';
     setTimeout(() => el.style.display = 'none', 3000);
 }
@@ -237,17 +237,17 @@ function showError(msg) {
 // --- Missions ---
 function renderMissions() {
     if (!myTeam) {
-        document.getElementById('missions-no-team').style.display = 'block';
-        document.getElementById('missions-content').style.display = 'none';
+        document.querySelector('#missions-no-team').style.display = 'block';
+        document.querySelector('#missions-content').style.display = 'none';
         return;
     }
-    document.getElementById('missions-no-team').style.display = 'none';
-    document.getElementById('missions-content').style.display = 'block';
+    document.querySelector('#missions-no-team').style.display = 'none';
+    document.querySelector('#missions-content').style.display = 'block';
 
     const done = myTeam.completedMissions || [];
-    document.getElementById('missions-progress').textContent = `${done.length} / ${missions.length}`;
+    document.querySelector('#missions-progress').textContent = `${done.length} / ${missions.length}`;
 
-    document.getElementById('missions-list').innerHTML = missions.map(m => {
+    document.querySelector('#missions-list').innerHTML = missions.map(m => {
         const isDone = done.includes(m.id);
         return `
     <div class="mission-card ${isDone ? 'done' : ''}" id="mc-${m.id}">
@@ -289,24 +289,24 @@ async function toggleMission(missionId) {
 // --- Upload ---
 function openUpload(missionId, title, desc) {
     currentUploadMission = missionId;
-    document.getElementById('modal-mission-title').textContent = title;
-    document.getElementById('modal-mission-desc').textContent = desc;
-    document.getElementById('upload-preview-img').style.display = 'none';
-    document.getElementById('upload-preview-vid').style.display = 'none';
-    document.getElementById('file-input').value = '';
-    document.getElementById('upload-modal').classList.add('open');
+    document.querySelector('#modal-mission-title').textContent = title;
+    document.querySelector('#modal-mission-desc').textContent = desc;
+    document.querySelector('#upload-preview-img').style.display = 'none';
+    document.querySelector('#upload-preview-vid').style.display = 'none';
+    document.querySelector('#file-input').value = '';
+    document.querySelector('#upload-modal').classList.add('open');
 }
 
 function closeModal() {
-    document.getElementById('upload-modal').classList.remove('open');
+    document.querySelector('#upload-modal').classList.remove('open');
     currentUploadMission = null;
 }
 
 function previewFile(input) {
     const file = input.files[0];
     if (!file) return;
-    const img = document.getElementById('upload-preview-img');
-    const vid = document.getElementById('upload-preview-vid');
+    const img = document.querySelector('#upload-preview-img');
+    const vid = document.querySelector('#upload-preview-vid');
     const url = URL.createObjectURL(file);
     if (file.type.startsWith('video/')) {
         img.style.display = 'none';
@@ -319,10 +319,10 @@ function previewFile(input) {
 
 async function doUpload() {
     if (!myTeam) return showToast('Geen team gevonden', 'error');
-    const file = document.getElementById('file-input').files[0];
+    const file = document.querySelector('#file-input').files[0];
     if (!file) return showToast('Kies eerst een bestand', 'error');
 
-    const btn = document.getElementById('upload-btn');
+    const btn = document.querySelector('#upload-btn');
     btn.textContent = 'Uploaden...'; btn.disabled = true;
 
     const fd = new FormData();
@@ -345,11 +345,11 @@ async function doUpload() {
 // --- Leaderboard ---
 function renderLeaderboard() {
     if (!allTeams.length) {
-        document.getElementById('leaderboard-list').innerHTML = '<div class="lb-empty">Nog geen teams. Maak een team aan om te beginnen!</div>';
+        document.querySelector('#leaderboard-list').innerHTML = '<div class="lb-empty">Nog geen teams. Maak een team aan om te beginnen!</div>';
         return;
     }
     const rankClass = ['gold', 'silver', 'bronze'];
-    document.getElementById('leaderboard-list').innerHTML = allTeams.map((t, i) => `
+    document.querySelector('#leaderboard-list').innerHTML = allTeams.map((t, i) => `
     <div class="lb-card ${myTeam && t.id === myTeam.id ? 'me' : ''}">
       <div class="lb-rank ${rankClass[i] || ''}">${i + 1}</div>
       <div class="lb-color" style="background:${t.color}"></div>
@@ -368,10 +368,10 @@ function renderLeaderboard() {
 // --- Feed ---
 function renderFeed() {
     if (!allUploads.length) {
-        document.getElementById('feed-list').innerHTML = '<div class="feed-empty">Nog geen uploads. Upload een foto of video bij een opdracht!</div>';
+        document.querySelector('#feed-list').innerHTML = '<div class="feed-empty">Nog geen uploads. Upload een foto of video bij een opdracht!</div>';
         return;
     }
-    document.getElementById('feed-list').innerHTML = allUploads.map(u => {
+    document.querySelector('#feed-list').innerHTML = allUploads.map(u => {
         const mission = missions.find(m => m.id === u.missionId);
         const isVideo = /\.(mp4|mov|webm)$/i.test(u.filename);
         const timeAgo = formatTime(u.timestamp);
@@ -406,19 +406,19 @@ function formatTime(ts) {
 
 // --- Toast ---
 function showToast(msg, type = '') {
-    const t = document.getElementById('toast');
+    const t = document.querySelector('#toast');
     t.textContent = msg;
     t.className = `toast ${type} show`;
     setTimeout(() => t.className = `toast ${type}`, 2500);
 }
 
 // Close modal on overlay click
-document.getElementById('upload-modal').addEventListener('click', function (e) {
+document.querySelector('#upload-modal').addEventListener('click', function (e) {
     if (e.target === this) closeModal();
 });
 
 // Enter key on name input
-document.getElementById('team-name-input').addEventListener('keydown', e => {
+document.querySelector('#team-name-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') joinTeam();
 });
 
@@ -426,10 +426,10 @@ document.addEventListener('DOMContentLoaded', init);
 
 // ─── QUIZ ─────────────────────────────────────────────────────────────────────
 function renderQuiz() {
-    const idle     = document.getElementById('quiz-idle');
-    const active   = document.getElementById('quiz-active');
-    const answered = document.getElementById('quiz-answered');
-    const result   = document.getElementById('quiz-result');
+    const idle     = document.querySelector('#quiz-idle');
+    const active   = document.querySelector('#quiz-active');
+    const answered = document.querySelector('#quiz-answered');
+    const result   = document.querySelector('#quiz-result');
 
     // Hide all first
     idle.style.display = 'none';
@@ -444,7 +444,7 @@ function renderQuiz() {
 
     if (myAnswer !== null) {
         answered.style.display = 'block';
-        document.getElementById('quiz-answered-txt').textContent =
+        document.querySelector('#quiz-answered-txt').textContent =
             'Je antwoordde: "' + myAnswer + '". Wacht op de uitslag...';
         return;
     }
@@ -475,7 +475,7 @@ function renderQuiz() {
             <button class="btn" onclick="submitOpenAnswer()" style="width:100%">Antwoord versturen →</button>`;
     }
 
-    document.getElementById('quiz-question-card').innerHTML = `
+    document.querySelector('#quiz-question-card').innerHTML = `
         <div class="quiz-card">
             <div class="quiz-label">Live vraag · +${activeQuestion.pts} punten voor het eerste juiste antwoord</div>
             <div class="quiz-question">${escHtml(activeQuestion.question)}</div>
@@ -485,7 +485,7 @@ function renderQuiz() {
 }
 
 function submitOpenAnswer() {
-    const input = document.getElementById('quiz-open-input');
+    const input = document.querySelector('#quiz-open-input');
     if (!input) return;
     const val = input.value.trim();
     if (!val) return;
@@ -522,10 +522,10 @@ function renderQuizResult(data) {
     // Update activeQuestion and myAnswer state
     activeQuestion = null;
 
-    const idle     = document.getElementById('quiz-idle');
-    const active   = document.getElementById('quiz-active');
-    const answered = document.getElementById('quiz-answered');
-    const result   = document.getElementById('quiz-result');
+    const idle     = document.querySelector('#quiz-idle');
+    const active   = document.querySelector('#quiz-active');
+    const answered = document.querySelector('#quiz-answered');
+    const result   = document.querySelector('#quiz-result');
 
     idle.style.display = 'none';
     active.style.display = 'none';
@@ -576,7 +576,7 @@ function renderQuizResult(data) {
                 </div>`).join('')}
         </div>` : '';
 
-    document.getElementById('quiz-result-card').innerHTML = `
+    document.querySelector('#quiz-result-card').innerHTML = `
         <div style="padding-bottom:16px">
             ${banner}
             <div class="result-answer-reveal">
@@ -597,8 +597,8 @@ function renderQuizResult(data) {
 }
 
 function resetQuizView() {
-    document.getElementById('quiz-result').style.display = 'none';
-    document.getElementById('quiz-idle').style.display = 'block';
+    document.querySelector('#quiz-result').style.display = 'none';
+    document.querySelector('#quiz-idle').style.display = 'block';
 }
 
 function escHtml(s) {
