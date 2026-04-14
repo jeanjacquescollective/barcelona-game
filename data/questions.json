@@ -1,0 +1,13 @@
+[
+  { "type": "mcq", "question": "Wat is de officiële taal van Catalonië naast Spaans?", "options": ["Catalaans","Valenciaans","Galicisch","Baskisch"], "answer": "Catalaans", "pts": 20 },
+  { "type": "mcq", "question": "Welk jaar werd de Sagrada Família gestart?", "options": ["1882","1900","1865","1920"], "answer": "1882", "pts": 20 },
+  { "type": "mcq", "question": "Welke architect ontwierp de Sagrada Família?", "options": ["Antoni Gaudí","Pablo Picasso","Salvador Dalí","Lluís Domènech"], "answer": "Antoni Gaudí", "pts": 20 },
+  { "type": "mcq", "question": "In welke wijk ligt de Barceloneta?", "options": ["Ciutat Vella","Gràcia","Eixample","Sants"], "answer": "Ciutat Vella", "pts": 20 },
+  { "type": "mcq", "question": "Welke voetbalclub speelt in het Camp Nou?", "options": ["FC Barcelona","Espanyol","Atletico","Real Madrid"], "answer": "FC Barcelona", "pts": 15 },
+  { "type": "mcq", "question": "Hoe heet de beroemde markt op Las Ramblas?", "options": ["La Boqueria","El Mercado","La Plaça","La Fira"], "answer": "La Boqueria", "pts": 15 },
+  { "type": "mcq", "question": "Welke kleur heeft de vlag van Catalonië NIET?", "options": ["Groen","Geel","Rood","Blauw"], "answer": "Groen", "pts": 20 },
+  { "type": "mcq", "question": "Wat betekent \"Gràcies\" in het Catalaans?", "options": ["Dankjewel","Hallo","Tot ziens","Sorry"], "answer": "Dankjewel", "pts": 10 },
+  { "type": "open", "question": "Hoeveel meter hoog wordt de Sagrada Família als ze klaar is? (afronden op 10)", "answer": "170", "pts": 25 },
+  { "type": "open", "question": "In welk jaar werd FC Barcelona opgericht?", "answer": "1899", "pts": 20 },
+  { "type": "open", "question": "Hoeveel inwoners heeft Barcelona (afronden op 100.000)?", "answer": "1600000", "pts": 25 }
+]

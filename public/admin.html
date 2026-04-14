@@ -1,160 +1,377 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nl">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — BCN Spel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/admin.css">
-</head>
-<body>
-
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-box">
-    <h1>BCN<span>.</span>ADMIN</h1>
-    <p>Voer het adminwachtwoord in om verder te gaan.</p>
-    <div class="label" style="text-align:left;margin-bottom:6px">Wachtwoord</div>
-    <input class="inp" type="password" id="pw-input" placeholder="••••••••••" style="margin-bottom:14px">
-    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Inloggen</button>
-    <div id="login-error" style="color:var(--red);font-size:13px;margin-top:10px;display:none">Verkeerd wachtwoord.</div>
-  </div>
-</div>
-
-<!-- APP -->
-<div id="app">
-  <div class="topbar">
-    <div class="topbar-logo">BCN<span>.</span>ADMIN</div>
-    <div class="topbar-badge">Admin paneel</div>
-    <div class="ws-status"><div class="dot" id="ws-dot"></div><span id="ws-txt">Verbinden...</span></div>
-    <button class="btn btn-ghost btn-sm" onclick="doReset()" style="margin-left:8px">Reset alles</button>
-  </div>
-
-  <div class="main">
-    <!-- LEFT: quiz management -->
-    <div class="left">
-
-      <!-- Active question -->
-      <div class="section" id="active-section" style="display:none">
-        <div class="sh">Live vraag <span class="answer-count" id="answer-count">0 antwoorden</span></div>
-        <div class="active-q-display" id="active-q-display"></div>
-        <button class="btn btn-red" onclick="closeQuestion()">Vraag sluiten & punten toekennen</button>
-      </div>
-
-      <!-- Last result -->
-      <div class="section" id="result-section" style="display:none">
-        <div class="sh">Resultaten <span class="pill" id="result-answer-pill"></span></div>
-        <div id="result-list"></div>
-      </div>
-
-      <!-- Push question -->
-      <div class="section">
-        <div class="sh">Vraag pushen</div>
-        <div class="tabs">
-          <button class="tab active" onclick="switchTab('presets')">Presets</button>
-          <button class="tab" onclick="switchTab('custom')">Zelf maken</button>
-          <button class="tab" onclick="switchTab('minigames')">Minigame ideeën</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - BCN Spel</title>
+    <link rel="stylesheet" href="css/common.css" />
+    <link rel="stylesheet" href="css/admin.css" />
+  </head>
+  <body>
+    <!-- LOGIN -->
+    <div id="login-screen">
+      <div class="login-box">
+        <h1>BCN<span>.</span>ADMIN</h1>
+        <p>Voer het adminwachtwoord in om verder te gaan.</p>
+        <div class="label" style="text-align: left; margin-bottom: 6px">
+          Wachtwoord
         </div>
-
-        <!-- PRESETS -->
-        <div class="tab-content active" id="tab-presets">
-          <div class="preset-grid" id="preset-grid"></div>
-          <button class="btn btn-primary" onclick="pushPreset()" id="push-preset-btn" disabled>Geselecteerde vraag pushen →</button>
+        <input
+          class="inp"
+          type="password"
+          id="pw-input"
+          placeholder="••••••••••"
+          style="margin-bottom: 14px"
+        />
+        <button id="login-button" class="btn btn-primary" style="width: 100%">
+          Inloggen
+        </button>
+        <div
+          id="login-error"
+          style="
+            color: var(--red);
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+          "
+        >
+          Verkeerd wachtwoord.
         </div>
-
-        <!-- CUSTOM -->
-        <div class="tab-content" id="tab-custom">
-          <div class="label">Type</div>
-          <select class="inp" id="q-type" style="margin-bottom:10px" onchange="toggleOptions()">
-            <option value="mcq">Multiple choice (4 opties)</option>
-            <option value="open">Open vraag (tekst)</option>
-          </select>
-          <div class="label">Vraag</div>
-          <input class="inp" id="q-question" placeholder="Typ de vraag..." style="margin-bottom:10px">
-          <div id="options-wrap">
-            <div class="label">Opties (4 stuks)</div>
-            <div class="inp-row"><input class="inp" id="opt-a" placeholder="Optie A"><input class="inp" id="opt-b" placeholder="Optie B"></div>
-            <div class="inp-row" style="margin-bottom:10px"><input class="inp" id="opt-c" placeholder="Optie C"><input class="inp" id="opt-d" placeholder="Optie D"></div>
-          </div>
-          <div class="label">Correct antwoord</div>
-          <input class="inp" id="q-answer" placeholder="Exact correct antwoord" style="margin-bottom:10px">
-          <div class="label">Punten voor eerste juiste antwoord</div>
-          <input class="inp" id="q-pts" type="number" value="20" min="5" max="100" style="margin-bottom:14px">
-          <button class="btn btn-primary" onclick="pushCustom()">Vraag pushen →</button>
-        </div>
-
-        <!-- MINIGAME IDEAS -->
-        <div class="tab-content" id="tab-minigames">
-          <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Ideeën voor live minigames die je als admin kunt aansturen. Niet automatisch — jij bepaalt de punten handmatig via het klassement.</p>
-          <div class="mg-card">
-            <div class="mg-icon">🎤</div>
-            <div>
-              <div class="mg-title">Raadspeaker</div>
-              <div class="mg-desc">Eén persoon per team beschrijft een woord zonder het te zeggen. De admin zegt welk woord. Snelste team dat het raadt krijgt punten.</div>
-              <div class="mg-tag">live · handmatige punten</div>
-            </div>
-          </div>
-          <div class="mg-card">
-            <div class="mg-icon">📸</div>
-            <div>
-              <div class="mg-title">Fotosprint</div>
-              <div class="mg-desc">Admin zegt een opdracht via de quiz feed ("Stuur een foto van jullie met een hond"). Eerste team die uploadt wint. Controleer via de Feed.</div>
-              <div class="mg-tag">live · upload race</div>
-            </div>
-          </div>
-          <div class="mg-card">
-            <div class="mg-icon">🔢</div>
-            <div>
-              <div class="mg-title">Raad het getal</div>
-              <div class="mg-desc">Push een open vraag met een getal als antwoord. Wie het dichtst zit wint — gebruik de "score aanpassen" functie in het klassement.</div>
-              <div class="mg-tag">open vraag · manueel beoordelen</div>
-            </div>
-          </div>
-          <div class="mg-card">
-            <div class="mg-icon">⚡</div>
-            <div>
-              <div class="mg-title">Speed Round</div>
-              <div class="mg-desc">Push 5 vragen snel achter elkaar (30 sec elk). Sluit elke vraag meteen na 30 sec. Alleen de eerste met het juiste antwoord scoort.</div>
-              <div class="mg-tag">rapid fire · meerdere vragen</div>
-            </div>
-          </div>
-          <div class="mg-card">
-            <div class="mg-icon">🗺️</div>
-            <div>
-              <div class="mg-title">Barcelona Locatie Quiz</div>
-              <div class="mg-desc">Zeg een GPS-coördinaat of beschrijving. Teams moeten zeggen welke landmark dat is. Push als open vraag.</div>
-              <div class="mg-tag">open vraag · barcelona-specifiek</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Question history -->
-      <div class="section">
-        <div class="sh">Vraaggeschiedenis <span class="pill" id="hist-count">0</span></div>
-        <div id="hist-list"><div style="color:var(--muted);font-size:13px">Nog geen gesloten vragen.</div></div>
       </div>
     </div>
 
-    <!-- RIGHT: leaderboard -->
-    <div class="right">
-      <div class="sh">Klassement <span class="pill" id="team-count">0 teams</span></div>
-      <div id="lb-list"><div style="color:var(--muted);font-size:13px">Nog geen teams.</div></div>
-
-      <div style="margin-top:20px">
-        <div class="sh" style="font-size:16px">Score aanpassen</div>
-        <p style="color:var(--muted);font-size:12px;margin-bottom:10px">Gebruik + / − naast elk team om handmatig punten toe te voegen of af te trekken.</p>
+    <!-- APP -->
+    <div id="app">
+      <div class="topbar">
+        <div class="topbar-logo">BCN<span>.</span>ADMIN</div>
+        <div class="topbar-badge">Admin paneel</div>
+        <div class="ws-status">
+          <div class="dot" id="ws-dot"></div>
+          <span id="ws-txt">Verbinden...</span>
+        </div>
+        <button
+          id="reset-button"
+          class="btn btn-ghost btn-sm"
+          style="margin-left: 8px"
+        >
+          Reset alles
+        </button>
       </div>
 
-      <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px">
-        <div class="sh" style="font-size:16px">Supabase status</div>
-        <div id="supabase-status" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--muted)">Controleren...</div>
+      <div class="main">
+        <!-- LEFT: quiz management -->
+        <div class="left">
+          <!-- Active question -->
+          <div class="section" id="active-section" style="display: none">
+            <div class="sh">
+              Live vraag
+              <span class="answer-count" id="answer-count">0 antwoorden</span>
+            </div>
+            <div class="active-q-display" id="active-q-display"></div>
+            <button id="close-question-button" class="btn btn-red">
+              Vraag sluiten & punten toekennen
+            </button>
+          </div>
+
+          <!-- Last result -->
+          <div class="section" id="result-section" style="display: none">
+            <div class="sh">
+              Resultaten <span class="pill" id="result-answer-pill"></span>
+            </div>
+            <div id="result-list"></div>
+          </div>
+
+          <!-- RIGHT TABS -->
+          <div class="section" style="padding: 0">
+            <nav
+              class="tabs"
+              style="
+                border-bottom: 1px solid var(--border);
+                margin-bottom: 0;
+                padding: 0 16px;
+              "
+            >
+              <button class="nav-btn active" data-panel="vraag">
+                Vraag pushen
+              </button>
+              <!-- <button class="nav-btn" data-panel="klassement">
+                Klassement
+              </button> -->
+              <button class="nav-btn" data-panel="feed">
+                Feed
+                <span class="pill" id="feed-count" style="margin-left: 4px"
+                  >0</span
+                >
+              </button>
+            </nav>
+
+            <!-- VRAAG PUSHEN PANEL -->
+            <div
+              class="panel-content active"
+              id="panel-vraag"
+              style="padding: 16px"
+            >
+              <div class="tabs">
+                <button class="tab active" data-choice="presets">
+                  Presets
+                </button>
+                <button class="tab" data-choice="custom">Zelf maken</button>
+                <!-- <button class="tab" data-choice="minigames">Minigame ideeën</button> -->
+              </div>
+
+              <!-- PRESETS -->
+              <div class="tab-content active" id="tab-presets">
+                <div class="preset-grid" id="preset-grid"></div>
+                <button
+                  class="btn btn-primary"
+                  id="push-preset-button"
+                  disabled
+                >
+                  Geselecteerde vraag pushen →
+                </button>
+              </div>
+
+              <!-- CUSTOM -->
+              <div class="tab-content" id="tab-custom">
+                <div class="label">Type</div>
+                <select class="inp" id="q-type" style="margin-bottom: 10px">
+                  <option value="mcq">Multiple choice (4 opties)</option>
+                  <option value="open">Open vraag (tekst)</option>
+                  <option value="image">Fotovraag</option>
+                </select>
+                <div class="label">Vraag</div>
+                <input
+                  class="inp"
+                  id="q-question"
+                  placeholder="Typ de vraag..."
+                  style="margin-bottom: 10px"
+                />
+                <div id="options-wrap">
+                  <div class="label">Opties (4 stuks)</div>
+                  <div class="inp-row">
+                    <input class="inp" id="opt-a" placeholder="Optie A" /><input
+                      class="inp"
+                      id="opt-b"
+                      placeholder="Optie B"
+                    />
+                  </div>
+                  <div class="inp-row" style="margin-bottom: 10px">
+                    <input class="inp" id="opt-c" placeholder="Optie C" /><input
+                      class="inp"
+                      id="opt-d"
+                      placeholder="Optie D"
+                    />
+                  </div>
+                </div>
+                <div class="label">Correct antwoord</div>
+                <input
+                  class="inp"
+                  id="q-answer"
+                  placeholder="Exact correct antwoord"
+                  style="margin-bottom: 10px"
+                />
+                <div class="label">Punten voor eerste juiste antwoord</div>
+                <input
+                  class="inp"
+                  id="q-pts"
+                  type="number"
+                  value="20"
+                  min="5"
+                  max="100"
+                  style="margin-bottom: 14px"
+                />
+                <button class="btn btn-primary" id="push-custom-button">
+                  Vraag pushen →
+                </button>
+              </div>
+
+              <!-- MINIGAME IDEAS -->
+              <div class="tab-content" id="tab-minigames">
+                <p
+                  style="
+                    color: var(--muted);
+                    font-size: 13px;
+                    margin-bottom: 14px;
+                  "
+                >
+                  Ideeën voor live minigames die je als admin kunt aansturen.
+                </p>
+                <div class="mg-card">
+                  <div class="mg-icon">🎤</div>
+                  <div>
+                    <div class="mg-title">Raadspeaker</div>
+                    <div class="mg-desc">
+                      Eén persoon per team beschrijft een woord zonder het te
+                      zeggen.
+                    </div>
+                    <div class="mg-tag">live · handmatige punten</div>
+                  </div>
+                </div>
+                <div class="mg-card">
+                  <div class="mg-icon">📸</div>
+                  <div>
+                    <div class="mg-title">Fotosprint</div>
+                    <div class="mg-desc">
+                      Admin zegt een opdracht. Eerste team dat uploadt wint.
+                    </div>
+                    <div class="mg-tag">live · upload race</div>
+                  </div>
+                </div>
+                <div class="mg-card">
+                  <div class="mg-icon">🔢</div>
+                  <div>
+                    <div class="mg-title">Raad het getal</div>
+                    <div class="mg-desc">
+                      Push een open vraag met een getal als antwoord.
+                    </div>
+                    <div class="mg-tag">open vraag · manueel beoordelen</div>
+                  </div>
+                </div>
+                <div class="mg-card">
+                  <div class="mg-icon">⚡</div>
+                  <div>
+                    <div class="mg-title">Speed Round</div>
+                    <div class="mg-desc">
+                      Push 5 vragen snel achter elkaar (30 sec elk).
+                    </div>
+                    <div class="mg-tag">rapid fire · meerdere vragen</div>
+                  </div>
+                </div>
+                <div class="mg-card">
+                  <div class="mg-icon">🗺️</div>
+                  <div>
+                    <div class="mg-title">Barcelona Locatie Quiz</div>
+                    <div class="mg-desc">
+                      Teams raden welke landmark bij een coördinaat hoort.
+                    </div>
+                    <div class="mg-tag">open vraag · barcelona-specifiek</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Question history -->
+              <div
+                style="
+                  margin-top: 20px;
+                  border-top: 1px solid var(--border);
+                  padding-top: 16px;
+                "
+              >
+                <div class="sh">
+                  Vraaggeschiedenis <span class="pill" id="hist-count">0</span>
+                </div>
+                <div id="hist-list">
+                  <div style="color: var(--muted); font-size: 13px">
+                    Nog geen gesloten vragen.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- KLASSEMENT PANEL -->
+            <div
+              class="panel-content"
+              id="panel-klassement"
+              style="padding: 16px; display: none"
+            >
+              <div class="sh">
+                Klassement <span class="pill" id="team-count">0 teams</span>
+              </div>
+              <div id="lb-list">
+                <div style="color: var(--muted); font-size: 13px">
+                  Nog geen teams.
+                </div>
+              </div>
+              <div style="margin-top: 16px">
+                <p style="color: var(--muted); font-size: 12px">
+                  Gebruik + / − naast elk team om handmatig punten toe te voegen
+                  of af te trekken.
+                </p>
+              </div>
+              <div
+                style="
+                  margin-top: 20px;
+                  border-top: 1px solid var(--border);
+                  padding-top: 16px;
+                "
+              >
+                <div class="sh" style="font-size: 16px">Supabase status</div>
+                <div
+                  id="supabase-status"
+                  style="
+                    font-size: 12px;
+                    font-family: &quot;DM Mono&quot;, monospace;
+                    color: var(--muted);
+                  "
+                >
+                  Controleren...
+                </div>
+              </div>
+            </div>
+
+            <!-- FEED PANEL -->
+            <div
+              class="panel-content"
+              id="panel-feed"
+              style="padding: 16px; display: none"
+            >
+              <div class="sh">
+                Feed <span class="pill" id="feed-count-inner">0</span>
+              </div>
+              <div id="admin-feed-list">
+                <div style="color: var(--muted); font-size: 13px">
+                  Nog geen uploads.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: leaderboard -->
+        <div class="right">
+          <div class="sh">
+            Klassement <span class="pill" id="team-count">0 teams</span>
+          </div>
+          <div id="lb-list">
+            <div style="color: var(--muted); font-size: 13px">
+              Nog geen teams.
+            </div>
+          </div>
+
+          <div style="margin-top: 20px">
+            <div class="sh" style="font-size: 16px">Score aanpassen</div>
+            <p
+              style="color: var(--muted); font-size: 12px; margin-bottom: 10px"
+            >
+              Gebruik + / − naast elk team om handmatig punten toe te voegen of
+              af te trekken.
+            </p>
+          </div>
+
+          <div
+            style="
+              margin-top: 20px;
+              border-top: 1px solid var(--border);
+              padding-top: 16px;
+            "
+          >
+            <div class="sh" style="font-size: 16px">Supabase status</div>
+            <div
+              id="supabase-status"
+              style="
+                font-size: 12px;
+                font-family: &quot;DM Mono&quot;, monospace;
+                color: var(--muted);
+              "
+            >
+              Controleren...
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-<div class="toast" id="toast"></div>
-<script src="js/admin.js"></script></body>
+    <div class="toast" id="toast"></div>
+    <script src="js/admin.js"></script>
+  </body>
 </html>
