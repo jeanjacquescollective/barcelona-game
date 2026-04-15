@@ -8,6 +8,8 @@ let presets        = [];
 let history        = [];
 let allUploads     = [];
 let missions       = [];
+const VALID_ADMIN_PANELS = new Set(["vraag", "klassement", "feed"]);
+const VALID_ADMIN_CHOICES = new Set(["presets", "custom", "minigames"]);
 
 function setTextForAll(selector, value) {
   document.querySelectorAll(selector).forEach((el) => {
@@ -52,9 +54,39 @@ async function init() {
   allUploads = await fetch("/api/uploads").then((r) => r.json());
   renderPresets();
   renderHistory();
+  toggleOptions();
+  restoreAdminStateFromUrl();
   // makeWS is provided by common.js
   wsState = makeWS("ws-dot", "ws-txt", handleWsMessage);
   checkSupabase();
+}
+
+function setAdminStateInUrl({ panel, choice }) {
+  const url = new URL(window.location.href);
+  if (panel && VALID_ADMIN_PANELS.has(panel)) {
+    url.searchParams.set("panel", panel);
+  }
+  if (choice && VALID_ADMIN_CHOICES.has(choice)) {
+    url.searchParams.set("choice", choice);
+  }
+  window.history.replaceState({}, "", url);
+}
+
+function restoreAdminStateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const panel = params.get("panel");
+  const choice = params.get("choice");
+
+  if (VALID_ADMIN_PANELS.has(panel)) {
+    switchPanel(panel, null, false);
+  }
+  if (VALID_ADMIN_CHOICES.has(choice)) {
+    switchTab(choice, null, false);
+  }
+
+  const activePanel = document.querySelector(".nav-btn.active[data-panel]")?.dataset.panel || "vraag";
+  const activeChoice = document.querySelector(".tabs .tab.active[data-choice]")?.dataset.choice || "presets";
+  setAdminStateInUrl({ panel: activePanel, choice: activeChoice });
 }
 
 // ─── WEBSOCKET HANDLER ────────────────────────────────────────────────────────
@@ -139,10 +171,15 @@ async function addEventListeners() {
   document.querySelectorAll(".panel-tab[data-panel]").forEach((t) =>
     t.addEventListener("click", (e) => switchPanel(t.dataset.panel, e)),
   );
+
+  // Sync custom question form visibility to the currently selected type.
+  toggleOptions();
 }
 
 // ─── PANEL / TAB SWITCHING ────────────────────────────────────────────────────
-function switchPanel(name, e) {
+function switchPanel(name, e, updateUrl = true) {
+  if (!VALID_ADMIN_PANELS.has(name)) return;
+
   document
     .querySelectorAll(".nav-btn[data-panel], .panel-tab[data-panel], .tab[data-panel]")
     .forEach((t) => t.classList.remove("active"));
@@ -166,6 +203,11 @@ function switchPanel(name, e) {
     panel.classList.add("active");
     panel.style.display = "block";
   }
+
+  if (updateUrl) {
+    const activeChoice = document.querySelector(".tabs .tab.active[data-choice]")?.dataset.choice || "presets";
+    setAdminStateInUrl({ panel: name, choice: activeChoice });
+  }
 }
 
 // Panel tabs registered at top-level too (for tabs not inside .nav-btn)
@@ -173,7 +215,9 @@ document.querySelectorAll(".tab[data-panel]").forEach((t) =>
   t.addEventListener("click", (e) => switchPanel(t.dataset.panel, e)),
 );
 
-function switchTab(name, e) {
+function switchTab(name, e, updateUrl = true) {
+  if (!VALID_ADMIN_CHOICES.has(name)) return;
+
   document.querySelectorAll(".tabs .tab").forEach((t) => t.classList.remove("active"));
   document.querySelectorAll(".tab-content").forEach((t) => t.classList.remove("active"));
 
@@ -186,6 +230,15 @@ function switchTab(name, e) {
 
   const tabPanel = document.querySelector("#tab-" + name);
   if (tabPanel) tabPanel.classList.add("active");
+
+  if (name === "custom") {
+    toggleOptions();
+  }
+
+  if (updateUrl) {
+    const activePanel = document.querySelector(".nav-btn.active[data-panel]")?.dataset.panel || "vraag";
+    setAdminStateInUrl({ panel: activePanel, choice: name });
+  }
 }
 
 // ─── FEED ─────────────────────────────────────────────────────────────────────

@@ -50,13 +50,15 @@ router.get('/admin/presets', adminAuth, (req, res) => res.json(PRESET_QUESTIONS)
 
 router.post('/admin/question', adminAuth, (req, res) => {
   const { type, question, options, answer, pts, presetIndex } = req.body;
-
+  console.log('Received new question:', { type, question, options, answer, pts, presetIndex });
   let q;
   if (presetIndex !== undefined && PRESET_QUESTIONS[presetIndex]) {
     q = { ...PRESET_QUESTIONS[presetIndex] };
   } else {
-    if (!question || !answer)
+    if (!question || !answer && type !== 'image')
       return res.status(400).json({ error: 'question and answer required' });
+    if(type === "image" && !question)
+      return res.status(400).json({ error: 'question required for image type' });
     q = { type: type || 'open', question, options: options || [], answer, pts: pts || 20 };
   }
 

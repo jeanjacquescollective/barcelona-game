@@ -11,9 +11,12 @@ let currentView        = "join";
 let activeQuestion  = null;
 let myAnswer        = null;
 let quizNotifCount  = 0;
+let quizImageUploading = false;
+let missionUploadingId = null;
 
 // WebSocket handle (managed by makeWS from common.js)
 let wsState = null;
+const VALID_TABS = new Set(["join", "missions", "leaderboard", "feed", "quiz"]);
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 async function api(method, path, body) {
@@ -30,6 +33,7 @@ async function init() {
   renderAll();
   wsState = makeWS("status-dot", "status-text", handleWsMessage);
   setupEventListeners();
+  restoreTabFromUrl();
 }
 
 function renderAll() {
@@ -38,6 +42,27 @@ function renderAll() {
   renderLeaderboard();
   renderFeed();
   renderQuiz();
+}
+
+function getTabFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get("tab");
+  return VALID_TABS.has(tab) ? tab : null;
+}
+
+function setTabInUrl(tab) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("tab", tab);
+  window.history.replaceState({}, "", url);
+}
+
+function restoreTabFromUrl() {
+  const tab = getTabFromUrl();
+  if (tab) {
+    showView(tab, false);
+  } else {
+    setTabInUrl(currentView);
+  }
 }
 
 // ─── WEBSOCKET HANDLER ────────────────────────────────────────────────────────
@@ -78,6 +103,7 @@ function handleWsMessage(data) {
     allUploads    = [];
     activeQuestion = null;
     myAnswer      = null;
+    quizImageUploading = false;
     localStorage.removeItem("bcn_team");
     renderAll();
     showView("join");
@@ -85,6 +111,7 @@ function handleWsMessage(data) {
   } else if (data.type === "new_question") {
     activeQuestion = data.question;
     myAnswer       = null;
+    quizImageUploading = false;
     renderQuiz();
     if (currentView !== "quiz") {
       quizNotifCount++;
@@ -103,6 +130,7 @@ function syncMyTeam() {
     myTeam = updated;
     localStorage.setItem("bcn_team", JSON.stringify(myTeam));
     renderMissions();
+    updateTeamBadge();
   }
 }
 
@@ -111,11 +139,6 @@ function setupEventListeners() {
   document.querySelector("#join-team-btn").addEventListener("click", joinTeam);
   document.querySelector("#go-to-missions-btn").addEventListener("click", () => showView("missions"));
   document.querySelector("#leave-team-btn").addEventListener("click", leaveTeam);
-  document.querySelector("#upload-zone").addEventListener("click", () => document.querySelector("#file-input").click());
-  document.querySelector("#file-input").addEventListener("change", function () { previewFile(this); });
-  document.querySelector("#cancel-upload-btn").addEventListener("click", closeModal);
-  document.querySelector("#upload-btn").addEventListener("click", () => doUpload("mission_upload"));
-  document.querySelector("#upload-modal").addEventListener("click", function (e) { if (e.target === this) closeModal(); });
   document.querySelector("#team-name-input").addEventListener("keydown", (e) => { if (e.key === "Enter") joinTeam(); });
 
   document.querySelector("#nav-join").addEventListener("click",        () => showView("join"));
@@ -126,12 +149,15 @@ function setupEventListeners() {
 }
 
 // ─── VIEWS ────────────────────────────────────────────────────────────────────
-function showView(name) {
+function showView(name, updateUrl = true) {
+  if (!VALID_TABS.has(name)) return;
   currentView = name;
   document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
   document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
   document.getElementById(`view-${name}`).classList.add("active");
   document.getElementById(`nav-${name}`).classList.add("active");
+
+  if (updateUrl) setTabInUrl(name);
 
   if (name === "feed") {
     newFeedCount = 0;
@@ -193,7 +219,14 @@ function updateJoinView() {
 }
 
 function updateTeamBadge() {
-  if (!myTeam) return;
+  if (!myTeam) {
+    document.querySelector("#team-info-header").style.display = "none";
+    return;
+  }
+  document.querySelector("#team-info-header").style.display = "flex";
+  document.querySelector("#team-name-header").textContent = myTeam.name;
+  document.querySelector("#team-score-header").textContent = myTeam.score;
+  
   document.querySelector("#team-badge").innerHTML = `
     <div class="team-color-dot" style="background:${myTeam.color}"></div>
     <div>
@@ -227,6 +260,7 @@ function renderMissions() {
   document.querySelector("#missions-list").innerHTML = missions
     .map((m) => {
       const isDone = done.includes(m.id);
+      const isUploading = missionUploadingId === m.id;
       return `
         <div class="mission-card ${isDone ? "done" : ""}" id="mc-${m.id}">
           <div class="mission-top">
@@ -240,9 +274,9 @@ function renderMissions() {
               <div class="mission-actions">
                 ${isDone
                   ? `<button class="action-btn undo-btn" onclick="toggleMission(${m.id})">Ongedaan maken</button>`
-                  : `<button class="action-btn complete-btn" onclick="toggleMission(${m.id})">Voltooid ✓</button>`
+                  : ""
                 }
-                <button class="action-btn" onclick="openUpload(${m.id}, '${escJs(m.title)}', '${escJs(m.desc)}')">📷 Upload</button>
+                <button class="action-btn" onclick="pickMissionUpload(${m.id})" ${isUploading ? "disabled" : ""}>${isUploading ? "Uploaden..." : "📷 Upload"}</button>
               </div>
             </div>
           </div>
@@ -263,66 +297,89 @@ async function toggleMission(missionId) {
   const m    = missions.find((m) => m.id === missionId);
   const done = myTeam.completedMissions.includes(missionId);
   showToast(done ? `+${m.pts} punten! 🎉` : "Opdracht ongedaan gemaakt", done ? "success" : "");
-}
-
-// ─── UPLOAD ───────────────────────────────────────────────────────────────────
-function openUpload(missionId, title, desc) {
-  currentUploadMission = missionId;
-  document.querySelector("#modal-mission-title").textContent = title;
-  document.querySelector("#modal-mission-desc").textContent  = desc;
-  document.querySelector("#upload-preview-img").style.display = "none";
-  document.querySelector("#upload-preview-vid").style.display = "none";
-  document.querySelector("#file-input").value = "";
-  document.querySelector("#upload-modal").classList.add("open");
-}
-
-function closeModal() {
-  document.querySelector("#upload-modal").classList.remove("open");
-  currentUploadMission = null;
-}
-
-function previewFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const img  = document.querySelector("#upload-preview-img");
-  const vid  = document.querySelector("#upload-preview-vid");
-  const url  = URL.createObjectURL(file);
-  if (file.type.startsWith("video/")) {
-    img.style.display = "none";
-    vid.src           = url;
-    vid.style.display = "block";
-  } else {
-    vid.style.display = "none";
-    img.src           = url;
-    img.style.display = "block";
+  
+  // Highlight the mission card when completed
+  if (done) {
+    setTimeout(() => {
+      const card = document.querySelector(`#mc-${missionId}`);
+      if (card) {
+        card.style.animation = "none";
+        setTimeout(() => {
+          card.style.animation = "completePulse 0.6s ease-out";
+        }, 10);
+        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }, 100);
   }
 }
 
-async function doUpload(activityType = "mission_upload") {
+// ─── UPLOAD ───────────────────────────────────────────────────────────────────
+function pickMissionUpload(missionId) {
+  if (missionUploadingId !== null) return;
+  currentUploadMission = missionId;
+  const picker = document.createElement("input");
+  picker.type = "file";
+  picker.accept = "image/*,video/*";
+  picker.addEventListener("change", () => {
+    const file = picker.files?.[0];
+    if (!file) return;
+    doUpload("mission_upload", null, file, missionId);
+  });
+  picker.click();
+}
+
+async function doUpload(activityType = "mission_upload", fileInputSelector = "#file-input", providedFile = null, missionIdOverride = null) {
   if (!myTeam) return showToast("Geen team gevonden", "error");
-  const file = document.querySelector("#file-input").files[0];
+  const file = providedFile || (fileInputSelector ? document.querySelector(fileInputSelector)?.files?.[0] : null);
   if (!file) return showToast("Kies eerst een bestand", "error");
 
-  const btn       = document.querySelector("#upload-btn");
-  btn.textContent = "Uploaden...";
-  btn.disabled    = true;
+  const btn = activityType === "quiz_upload"
+    ? document.querySelector("#quiz-image-upload-btn")
+    : null;
 
   const fd = new FormData();
   fd.append("file",      file);
-  fd.append("missionId", currentUploadMission);
+  const missionId = missionIdOverride ?? currentUploadMission;
+  if (activityType === "mission_upload" && !missionId) return showToast("Geen opdracht geselecteerd", "error");
+  fd.append("missionId", missionId || "");
   fd.append("activity",  activityType);
+
+  if (activityType === "mission_upload") {
+    missionUploadingId = missionId;
+    renderMissions();
+  }
 
   try {
     const res  = await fetch(`/api/teams/${myTeam.id}/upload`, { method: "POST", body: fd });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    closeModal();
-    showToast("Upload gelukt! 🎉", "success");
+    
+    // Only close modal and toggle mission for mission uploads
+    if (activityType === "mission_upload") {
+      await toggleMission(missionId);
+      currentUploadMission = null;
+      showToast("Upload gelukt! 🎉", "success");
+    } else if (activityType === "quiz_upload") {
+      // Mark the image question as submitted in the quiz UI.
+      myAnswer = "Afbeelding ingestuurd";
+      quizImageUploading = false;
+      showToast("Upload gelukt! 🎉", "success");
+      renderQuiz();
+    }
   } catch (e) {
+    if (activityType === "quiz_upload") {
+      quizImageUploading = false;
+      renderQuiz();
+    }
     showToast("Upload mislukt: " + e.message, "error");
   } finally {
-    btn.textContent = "Uploaden";
-    btn.disabled    = false;
+    if (activityType === "mission_upload") {
+      missionUploadingId = null;
+      renderMissions();
+    }
+    if (btn) {
+      btn.disabled = false;
+    }
   }
 }
 
@@ -400,7 +457,9 @@ function renderQuiz() {
   if (myAnswer !== null) {
     answered.style.display = "block";
     document.querySelector("#quiz-answered-txt").textContent =
-      `Je antwoordde: "${myAnswer}". Wacht op de uitslag...`;
+      myAnswer === "Afbeelding ingestuurd"
+        ? "Afbeelding succesvol ingestuurd. Wacht op de uitslag..."
+        : `Je antwoordde: "${myAnswer}". Wacht op de uitslag...`;
     return;
   }
 
@@ -431,15 +490,14 @@ function renderQuiz() {
       <button class="btn" onclick="submitOpenAnswer()" style="width:100%">Antwoord versturen →</button>`;
 
   } else if (activeQuestion.type === "image") {
+    const uploadLabel = quizImageUploading ? "Uploaden..." : "📷 Upload antwoord";
     optionsHtml = `
       <div class="quiz-image-wrap">
         <img src="${escHtml(activeQuestion.imageUrl)}" alt="Question image"
           style="max-width:100%;border-radius:var(--r-sm);margin-bottom:16px">
-        <input id="file-input" type="file" accept="image/*" style="display:none">
-        <button class="btn" onclick="document.querySelector('#file-input').click()"
-          style="width:100%;margin-bottom:8px">📷 Kies afbeelding</button>
-        <button class="btn" id="quiz-image-submit-btn" onclick="submitImageAnswer()"
-          style="width:100%">Antwoord versturen →</button>
+        <input id="quiz-file-input" type="file" accept="image/*" style="display:none">
+        <button class="btn" id="quiz-image-upload-btn" onclick="document.querySelector('#quiz-file-input').click()"
+          style="width:100%" ${quizImageUploading ? "disabled" : ""}>${uploadLabel}</button>
       </div>`;
   }
 
@@ -454,11 +512,7 @@ function renderQuiz() {
     </div>`;
 
   if (activeQuestion.type === "image") {
-    document.querySelector("#file-input").addEventListener("change", (e) => {
-      if (e.target.files[0]) {
-        document.querySelector("#quiz-image-submit-btn").textContent = "Afbeelding geselecteerd ✓";
-      }
-    });
+    document.querySelector("#quiz-file-input").addEventListener("change", submitImageAnswer);
   }
 }
 
@@ -470,7 +524,13 @@ function submitOpenAnswer() {
 }
 
 function submitImageAnswer() {
-  doUpload("quiz_upload");
+  if (quizImageUploading || myAnswer !== null) return;
+  const input = document.querySelector("#quiz-file-input");
+  const file = input?.files?.[0];
+  if (!file) return;
+  quizImageUploading = true;
+  renderQuiz();
+  doUpload("quiz_upload", null, file);
 }
 
 async function submitAnswer(answer) {
