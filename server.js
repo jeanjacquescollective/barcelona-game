@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const { WebSocketServer } = require("ws");
 const multer = require("multer");
@@ -14,6 +16,18 @@ const wss = new WebSocketServer({ server });
 // Set SUPABASE_URL and SUPABASE_SERVICE_KEY in environment to enable persistence.
 // Without these, everything runs in-memory (resets on server restart).
 let supabase = null;
+const realtimeState = {
+  teamsChannelReady: false,
+  uploadsChannelReady: false,
+  lastStatus: "disabled",
+  lastError: null,
+  envLoaded: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY),
+  keyType: process.env.SUPABASE_SERVICE_KEY?.startsWith("sb_publishable_")
+    ? "publishable"
+    : process.env.SUPABASE_SERVICE_KEY
+      ? "service"
+      : "missing",
+};
 if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
   try {
     const { createClient } = require("@supabase/supabase-js");
@@ -93,8 +107,197 @@ function broadcast(data) {
   });
 }
 
+function isRealtimeHealthy() {
+  return realtimeState.teamsChannelReady && realtimeState.uploadsChannelReady;
+}
+
+function shouldBroadcastDirectly() {
+  return !supabase || !isRealtimeHealthy();
+}
+
 function getLeaderboard() {
   return Object.values(teams).sort((a, b) => b.score - a.score);
+}
+
+function getUploadsSorted() {
+  return Object.values(uploads).sort((a, b) => b.timestamp - a.timestamp);
+}
+
+function normalizeTeam(raw) {
+  if (!raw || !raw.id || !raw.name) return null;
+  return {
+    id: raw.id,
+    name: raw.name,
+    color: raw.color || TEAM_COLORS[0],
+    score: Number(raw.score) || 0,
+    completedMissions: Array.isArray(raw.completedMissions)
+      ? raw.completedMissions.map((m) => Number(m))
+      : [],
+    uploads: Array.isArray(raw.uploads) ? raw.uploads : [],
+  };
+}
+
+function normalizeUpload(raw) {
+  if (!raw || !raw.id || !raw.teamId || !raw.filename) return null;
+  return {
+    id: raw.id,
+    teamId: raw.teamId,
+    teamName: raw.teamName || "Onbekend team",
+    teamColor: raw.teamColor || "#666",
+    missionId: Number(raw.missionId),
+    activity: raw.activity || "mission_upload",
+    filename: raw.filename,
+    originalName: raw.originalName || raw.filename,
+    url: raw.url || `/uploads/${raw.filename}`,
+    timestamp: Number(raw.timestamp) || Date.now(),
+  };
+}
+
+async function saveTeamToSupabase(team) {
+  if (!supabase) return;
+  const payload = normalizeTeam(team);
+  if (!payload) return;
+  const { error } = await supabase
+    .from("teams")
+    .upsert(
+      {
+        id: payload.id,
+        payload,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+  if (error) throw error;
+}
+
+async function saveUploadToSupabase(record) {
+  if (!supabase) return;
+  const payload = normalizeUpload(record);
+  if (!payload) return;
+  const { error } = await supabase.from("uploads").upsert(
+    {
+      id: payload.id,
+      payload,
+      created_at: new Date(payload.timestamp).toISOString(),
+    },
+    { onConflict: "id" },
+  );
+  if (error) throw error;
+}
+
+function applyTeamPayload(payload) {
+  const team = normalizeTeam(payload);
+  if (!team) return null;
+  teams[team.id] = team;
+  return team;
+}
+
+function applyUploadPayload(payload) {
+  const record = normalizeUpload(payload);
+  if (!record) return null;
+  uploads[record.id] = record;
+  return record;
+}
+
+async function bootstrapFromSupabase() {
+  if (!supabase) return;
+  const [teamsResult, uploadsResult] = await Promise.all([
+    supabase.from("teams").select("id,payload"),
+    supabase.from("uploads").select("id,payload"),
+  ]);
+
+  if (teamsResult.error) throw teamsResult.error;
+  if (uploadsResult.error) throw uploadsResult.error;
+
+  Object.keys(teams).forEach((k) => delete teams[k]);
+  Object.keys(uploads).forEach((k) => delete uploads[k]);
+
+  (teamsResult.data || []).forEach((row) => applyTeamPayload(row.payload));
+  (uploadsResult.data || []).forEach((row) => applyUploadPayload(row.payload));
+
+  console.log(
+    `📦 Loaded from Supabase: ${Object.keys(teams).length} teams, ${Object.keys(uploads).length} uploads`,
+  );
+}
+
+function startRealtimeSync() {
+  if (!supabase) return;
+
+  const teamsChannel = supabase
+    .channel(`teams-sync-${process.pid}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "teams" },
+      (evt) => {
+        const row = evt.eventType === "DELETE" ? evt.old : evt.new;
+        if (!row) return;
+
+        if (evt.eventType === "DELETE") {
+          const id = row.id || row.payload?.id;
+          if (id && teams[id]) {
+            delete teams[id];
+            broadcast({ type: "teams_update", teams: getLeaderboard() });
+          }
+          return;
+        }
+
+        const changed = applyTeamPayload(row.payload);
+        if (changed) {
+          broadcast({ type: "teams_update", teams: getLeaderboard() });
+        }
+      },
+    )
+    .subscribe((status) => {
+      realtimeState.teamsChannelReady = status === "SUBSCRIBED";
+      realtimeState.lastStatus = status;
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        realtimeState.lastError = `teams channel ${status}`;
+      }
+      if (status === "SUBSCRIBED") {
+        console.log("🔄 Supabase realtime: teams subscribed");
+      }
+    });
+
+  const uploadsChannel = supabase
+    .channel(`uploads-sync-${process.pid}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "uploads" },
+      (evt) => {
+        const row = evt.eventType === "DELETE" ? evt.old : evt.new;
+        if (!row) return;
+
+        if (evt.eventType === "DELETE") {
+          const id = row.id || row.payload?.id;
+          if (id && uploads[id]) delete uploads[id];
+          return;
+        }
+
+        const changed = applyUploadPayload(row.payload);
+        if (changed && evt.eventType === "INSERT") {
+          const team = teams[changed.teamId];
+          if (team && !team.uploads.includes(changed.id)) team.uploads.push(changed.id);
+          broadcast({
+            type: "new_upload",
+            upload: changed,
+            teamName: changed.teamName,
+            activity: changed.activity,
+          });
+        }
+      },
+    )
+    .subscribe((status) => {
+      realtimeState.uploadsChannelReady = status === "SUBSCRIBED";
+      realtimeState.lastStatus = status;
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        realtimeState.lastError = `uploads channel ${status}`;
+      }
+      if (status === "SUBSCRIBED") {
+        console.log("🔄 Supabase realtime: uploads subscribed");
+      }
+    });
+
+  return { teamsChannel, uploadsChannel };
 }
 
 function safeQuestion() {
@@ -110,7 +313,7 @@ wss.on("connection", (ws) => {
     JSON.stringify({
       type: "init",
       teams: getLeaderboard(),
-      uploads: Object.values(uploads).sort((a, b) => b.timestamp - a.timestamp),
+      uploads: getUploadsSorted(),
       question: safeQuestion(),
     }),
   );
@@ -124,6 +327,30 @@ app.get("/api/missions", (req, res) => res.json(MISSIONS));
 
 // ─── TEAMS ────────────────────────────────────────────────────────────────────
 app.get("/api/teams", (req, res) => res.json(getLeaderboard()));
+
+app.get("/api/system/status", (req, res) => {
+  res.json({
+    mode: supabase
+      ? isRealtimeHealthy()
+        ? "supabase-realtime"
+        : "supabase"
+      : "in-memory",
+    supabaseEnabled: Boolean(supabase),
+    envLoaded: realtimeState.envLoaded,
+    keyType: realtimeState.keyType,
+    realtime: {
+      teamsChannelReady: realtimeState.teamsChannelReady,
+      uploadsChannelReady: realtimeState.uploadsChannelReady,
+      healthy: isRealtimeHealthy(),
+      lastStatus: realtimeState.lastStatus,
+      lastError: realtimeState.lastError,
+    },
+    counts: {
+      teams: Object.keys(teams).length,
+      uploads: Object.keys(uploads).length,
+    },
+  });
+});
 
 app.post("/api/teams", async (req, res) => {
   const { name } = req.body;
@@ -155,9 +382,18 @@ app.post("/api/teams", async (req, res) => {
   };
   teams[id] = team;
 
-  if (supabase) await supabase.from("teams").insert(team).catch(console.error);
+  if (supabase) {
+    try {
+      await saveTeamToSupabase(team);
+    } catch (e) {
+      console.error("Failed to persist team:", e.message || e);
+      return res.status(500).json({ error: "Team opslaan mislukt" });
+    }
+  }
 
-  broadcast({ type: "teams_update", teams: getLeaderboard() });
+  if (shouldBroadcastDirectly()) {
+    broadcast({ type: "teams_update", teams: getLeaderboard() });
+  }
   res.json(team);
 });
 
@@ -177,20 +413,24 @@ app.post("/api/teams/:teamId/missions/:missionId", async (req, res) => {
     team.score -= mission.pts;
   }
 
-  if (supabase)
-    await supabase
-      .from("teams")
-      .update({ score: team.score, completedMissions: team.completedMissions })
-      .eq("id", team.id)
-      .catch(console.error);
+  if (supabase) {
+    try {
+      await saveTeamToSupabase(team);
+    } catch (e) {
+      console.error("Failed to persist mission update:", e.message || e);
+      return res.status(500).json({ error: "Missie-update opslaan mislukt" });
+    }
+  }
 
-  broadcast({ type: "teams_update", teams: getLeaderboard() });
+  if (shouldBroadcastDirectly()) {
+    broadcast({ type: "teams_update", teams: getLeaderboard() });
+  }
   res.json(team);
 });
 
 // ─── UPLOADS ──────────────────────────────────────────────────────────────────
 app.get("/api/uploads", (req, res) =>
-  res.json(Object.values(uploads).sort((a, b) => b.timestamp - a.timestamp)),
+  res.json(getUploadsSorted()),
 );
 
 app.post(
@@ -216,14 +456,24 @@ app.post(
 
     uploads[record.id] = record;
     team.uploads.push(record.id);
-    if (supabase)
-      await supabase.from("uploads").insert(record).catch(console.error);
-    broadcast({
-      type: "new_upload",
-      upload: record,
-      teamName: team.name,
-      activity: req.body.activity,
-    });
+
+    if (supabase) {
+      try {
+        await Promise.all([saveUploadToSupabase(record), saveTeamToSupabase(team)]);
+      } catch (e) {
+        console.error("Failed to persist upload:", e.message || e);
+        return res.status(500).json({ error: "Upload opslaan mislukt" });
+      }
+    }
+
+    if (shouldBroadcastDirectly()) {
+      broadcast({
+        type: "new_upload",
+        upload: record,
+        teamName: team.name,
+        activity: req.body.activity,
+      });
+    }
     res.json(record);
   },
 );
@@ -265,7 +515,7 @@ app.post("/api/admin/question", adminAuth, (req, res) => {
 });
 
 // Close question (admin) — reveal answer + award points
-app.post("/api/admin/question/close", adminAuth, (req, res) => {
+app.post("/api/admin/question/close", adminAuth, async (req, res) => {
   if (!activeQuestion)
     return res.status(400).json({ error: "No active question" });
 
@@ -276,6 +526,7 @@ app.post("/api/admin/question/close", adminAuth, (req, res) => {
   );
 
   let firstCorrect = true;
+  const persistOps = [];
   sorted.forEach(([teamId, { answer, ts }]) => {
     const team = teams[teamId];
     if (!team) return;
@@ -289,6 +540,10 @@ app.post("/api/admin/question/close", adminAuth, (req, res) => {
         : Math.floor(activeQuestion.pts / 2);
       firstCorrect = false;
       team.score += awarded;
+      if (supabase) {
+        // Persist each changed team score; realtime will fan out updates.
+        persistOps.push(saveTeamToSupabase(team));
+      }
     }
     results.push({
       teamId,
@@ -304,6 +559,15 @@ app.post("/api/admin/question/close", adminAuth, (req, res) => {
   const closed = { ...activeQuestion, closedAt: Date.now(), results };
   questionHistory.unshift(closed);
   activeQuestion = null;
+
+  if (persistOps.length) {
+    try {
+      await Promise.all(persistOps);
+    } catch (e) {
+      console.error("Failed to persist quiz score:", e.message || e);
+      return res.status(500).json({ error: "Quiz-resultaten opslaan mislukt" });
+    }
+  }
 
   broadcast({
     type: "question_closed",
@@ -335,13 +599,24 @@ app.post("/api/quiz/answer", (req, res) => {
 });
 
 // Admin: adjust score manually
-app.post("/api/admin/teams/:teamId/score", adminAuth, (req, res) => {
+app.post("/api/admin/teams/:teamId/score", adminAuth, async (req, res) => {
   const team = teams[req.params.teamId];
   if (!team) return res.status(404).json({ error: "Team not found" });
   const delta = parseInt(req.body.delta) || 0;
   team.score = Math.max(0, team.score + delta);
-  broadcast({ type: "teams_update", teams: getLeaderboard() });
-  res.json(team);
+
+  if (supabase) {
+    try {
+      await saveTeamToSupabase(team);
+    } catch (e) {
+      console.error("Failed to persist score adjustment:", e.message || e);
+      return res.status(500).json({ error: "Score-update opslaan mislukt" });
+    }
+  }
+  if (shouldBroadcastDirectly()) {
+    broadcast({ type: "teams_update", teams: getLeaderboard() });
+  }
+  return res.json(team);
 });
 
 // Admin: get question history
@@ -357,11 +632,31 @@ app.post("/api/admin/auth", (req, res) => {
 });
 
 // Reset all
-app.post("/api/reset", adminAuth, (req, res) => {
+app.post("/api/reset", adminAuth, async (req, res) => {
   Object.keys(teams).forEach((k) => delete teams[k]);
   Object.keys(uploads).forEach((k) => delete uploads[k]);
   activeQuestion = null;
   questionHistory = [];
+
+  if (supabase) {
+    try {
+      const [teamsDelete, uploadsDelete] = await Promise.all([
+        supabase
+          .from("teams")
+          .delete()
+          .neq("id", "00000000-0000-0000-0000-000000000000"),
+        supabase
+          .from("uploads")
+          .delete()
+          .neq("id", "00000000-0000-0000-0000-000000000000"),
+      ]);
+      if (teamsDelete.error) throw teamsDelete.error;
+      if (uploadsDelete.error) throw uploadsDelete.error;
+    } catch (e) {
+      console.error("Failed to reset Supabase data:", e.message || e);
+    }
+  }
+
   try {
     fs.readdirSync(UPLOADS_DIR).forEach((f) => {
       try {
@@ -374,8 +669,26 @@ app.post("/api/reset", adminAuth, (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () =>
-  console.log(
-    `🚀 Barcelona Stadsspel on http://localhost:${PORT}  |  Admin: http://localhost:${PORT}/admin.html`,
-  ),
-);
+
+async function start() {
+  if (supabase) {
+    try {
+      await bootstrapFromSupabase();
+      startRealtimeSync();
+    } catch (e) {
+      realtimeState.lastError = e.message || String(e);
+      console.error(
+        "⚠️  Supabase bootstrap failed, continuing with in-memory cache:",
+        e.message || e,
+      );
+    }
+  }
+
+  server.listen(PORT, () =>
+    console.log(
+      `🚀 Barcelona Stadsspel on http://localhost:${PORT}  |  Admin: http://localhost:${PORT}/admin.html`,
+    ),
+  );
+}
+
+start();
