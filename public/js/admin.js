@@ -9,6 +9,18 @@ let history        = [];
 let allUploads     = [];
 let missions       = [];
 
+function setTextForAll(selector, value) {
+  document.querySelectorAll(selector).forEach((el) => {
+    el.textContent = value;
+  });
+}
+
+function setHtmlForAll(selector, value) {
+  document.querySelectorAll(selector).forEach((el) => {
+    el.innerHTML = value;
+  });
+}
+
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 document.querySelector("#pw-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") doLogin();
@@ -180,6 +192,7 @@ function switchTab(name, e) {
 function renderFeed() {
   const el = document.querySelector("#admin-feed-list");
   document.querySelector("#feed-count").textContent = allUploads.length;
+  setTextForAll("#feed-count-inner", allUploads.length);
   if (!allUploads.length) {
     el.innerHTML = '<div style="color:var(--muted);font-size:13px">Nog geen uploads.</div>';
     return;
@@ -208,15 +221,17 @@ function renderFeed() {
 
 // ─── LEADERBOARD ──────────────────────────────────────────────────────────────
 function renderLB() {
-  const el = document.querySelector("#lb-list");
-  document.querySelector("#team-count").textContent =
-    allTeams.length + " team" + (allTeams.length === 1 ? "" : "s");
+  const countText = allTeams.length + " team" + (allTeams.length === 1 ? "" : "s");
+  setTextForAll("#team-count", countText);
   if (!allTeams.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:13px">Nog geen teams.</div>';
+    setHtmlForAll(
+      "#lb-list",
+      '<div style="color:var(--muted);font-size:13px">Nog geen teams.</div>',
+    );
     return;
   }
   const ranks = ["gold", "silver", "bronze"];
-  el.innerHTML = allTeams
+  const markup = allTeams
     .map((t, i) => `
       <div class="lb-row">
         <div class="lb-rank ${ranks[i] || ""}">${i + 1}</div>
@@ -232,6 +247,7 @@ function renderLB() {
         </div>
       </div>`)
     .join("");
+  setHtmlForAll("#lb-list", markup);
 }
 
 async function adjScore(teamId, delta) {
@@ -353,7 +369,7 @@ function renderResults(d) {
 
 // ─── HISTORY ──────────────────────────────────────────────────────────────────
 function renderHistory() {
-  document.querySelector("#hist-count").textContent = history.length;
+  setTextForAll("#hist-count", history.length);
   document.querySelector("#hist-list").innerHTML = history.length
     ? history
         .map((h) => `
@@ -374,14 +390,52 @@ async function doReset() {
 
 // ─── SUPABASE STATUS ──────────────────────────────────────────────────────────
 async function checkSupabase() {
-  const el = document.querySelector("#supabase-status");
   try {
-    const res = await fetch("/api/teams");
-    el.innerHTML = res.ok
-      ? '<span style="color:var(--muted)">Server draait (in-memory modus). Stel SUPABASE_URL + SUPABASE_SERVICE_KEY in als env variabelen voor persistentie.</span>'
-      : '<span style="color:var(--red)">Server niet bereikbaar</span>';
+    const res = await fetch("/api/system/status");
+    if (!res.ok) throw new Error("status request failed");
+    const status = await res.json();
+
+    if (!status.envLoaded) {
+      setHtmlForAll(
+        "#supabase-status",
+        '<span style="color:var(--red)">.env is niet ingeladen door de server. Herstart de Node-server nadat dotenv is geïnstalleerd.</span>',
+      );
+      return;
+    }
+
+    if (status.keyType === "publishable") {
+      setHtmlForAll(
+        "#supabase-status",
+        '<span style="color:#B8860B">Supabase sleutel is ingeladen, maar dit lijkt een publishable key. Gebruik hier beter de service role key voor server-side opslag en sync.</span>',
+      );
+      return;
+    }
+
+    if (!status.supabaseEnabled) {
+      setHtmlForAll(
+        "#supabase-status",
+        '<span style="color:var(--muted)">In-memory modus actief. Stel SUPABASE_URL + SUPABASE_SERVICE_KEY in voor persistente opslag.</span>',
+      );
+      return;
+    }
+
+    if (status.realtime?.healthy) {
+      setHtmlForAll(
+        "#supabase-status",
+        '<span style="color:#2E8B57">Supabase actief met Realtime-sync tussen alle teams en server-instanties.</span>',
+      );
+      return;
+    }
+
+    setHtmlForAll(
+      "#supabase-status",
+      '<span style="color:#B8860B">Supabase actief, maar Realtime is nog niet volledig verbonden. Live events vallen terug op lokale WebSocket-broadcast.</span>',
+    );
   } catch (e) {
-    el.innerHTML = '<span style="color:var(--red)">Server niet bereikbaar</span>';
+    setHtmlForAll(
+      "#supabase-status",
+      '<span style="color:var(--red)">Server niet bereikbaar</span>',
+    );
   }
 }
 
