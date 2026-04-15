@@ -127,6 +127,7 @@ app.get("/api/teams", (req, res) => res.json(getLeaderboard()));
 
 app.post("/api/teams", async (req, res) => {
   const { name } = req.body;
+  console.log("Creating team with name:", name);  
   if (!name?.trim()) return res.status(400).json({ error: "Name required" });
   if (
     Object.values(teams).find(

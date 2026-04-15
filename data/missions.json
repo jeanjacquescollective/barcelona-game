@@ -9,7 +9,7 @@
   {
     "id": 2,
     "title": "Bestel iets in het Catalaans",
-    "desc": "Bestellen doe je in het Catalaans: 'Una cervesa, si us plau'.",
+    "desc": "Bestellen doe je in het Catalaans: 'Una aqua con gaz, si us plau'.",
     "tag": "taal",
     "pts": 10
   },
@@ -57,37 +57,37 @@
   },
   {
     "id": 9,
-    "title": "Vind het oudste gebouw in de buurt",
-    "desc": "Zoek het oudste gebouw dat je kunt vinden zonder te googelen. Foto + schatting van het jaar.",
-    "tag": "zoekspel",
+    "title": "UI-fail in het wild",
+    "desc": "Vind een bordje, ATM, automaat of touchscreen in de stad met een slechte user interface. Maak een foto en noteer waarom het slecht ontworpen is (10 sec video-uitleg).",
+    "tag": "web",
     "pts": 15
   },
   {
     "id": 10,
+    "title": "AR-selfie bij Sagrada Família",
+    "desc": "Gebruik een AR-filter op Instagram of Snapchat voor een creatieve foto voor de Sagrada Família. Filter moet zichtbaar zijn in het beeld.",
+    "tag": "virtual",
+    "pts": 20
+  },
+  {
+    "id": 11,
     "title": "Toasten met iets lokaals",
     "desc": "Iedereen heeft een drankje (alcoholvrij mag ook). Groepsfoto terwijl jullie toosten op de reis.",
     "tag": "gezellig",
     "pts": 10
   },
   {
-    "id": 11,
+    "id": 12,
     "title": "Serenade voor een vreemde",
     "desc": "Eén vrijwilliger zingt 15 seconden een liedje voor een willekeurige voorbijganger. De rest staat er gewoon bij alsof het normaal is. Film het.",
     "tag": "durf",
     "pts": 20
   },
   {
-    "id": 12,
-    "title": "Menselijke standaard",
-    "desc": "Zoek een sokkel, podium of verhoogd stuk grond. Één iemand staat er roerloos op als een standbeeld terwijl de rest er bewonderend omheen staat. Film de reacties.",
-    "tag": "durf",
-    "pts": 20
-  },
-  {
     "id": 13,
-    "title": "Geheime missie: volg iemand 30 seconden",
-    "desc": "Kies een onschuldige toerist en volg de groep discreet gedurende 30 seconden zonder op te vallen. Daarna luid 'mission complete' roepen. Film het stiekem.",
-    "tag": "spel",
+    "title": "Vind de beste typografie",
+    "desc": "Zoek 5 verschillende lettertypes in het straatbeeld (gevels, naamborden, menus…). Foto per lettertype + naam van het stijl (serif, sans, script…).",
+    "tag": "kunst",
     "pts": 15
   },
   {
@@ -103,5 +103,12 @@
     "desc": "Luister rond en probeer 5 verschillende talen te horen of te zien (op borden, gesprekken, menus…). Noteer ze. Foto als bewijs.",
     "tag": "zoekspel",
     "pts": 15
+  },
+  {
+    "id": 16,
+    "title": "Barcelona in één GIF",
+    "desc": "Maak een serie van 5+ foto's op dezelfde locatie met kleine verandering (mensen, licht, pose) en monteer het tot een GIF op giphy.com of ezgif.com. Deel de link.",
+    "tag": "creatief",
+    "pts": 20
   }
 ]

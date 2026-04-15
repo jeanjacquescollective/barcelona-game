@@ -154,6 +154,10 @@ async function getTeam() {
     if (res.error) {
       showError(res.error === "Team name already taken" ? "Deze naam is al bezet." : res.error);
     }
+      else {
+      myTeam = res;
+      localStorage.setItem("bcn_team", JSON.stringify(myTeam));
+    }
   } catch (e) {}
 }
 
@@ -231,7 +235,6 @@ function renderMissions() {
               <div class="mission-title">${m.title}</div>
               <div class="mission-desc">${m.desc}</div>
               <div class="mission-footer">
-                <span class="tag tag-${m.tag}">${m.tag}</span>
                 <span class="pts-tag">+${m.pts} PT</span>
               </div>
               <div class="mission-actions">
@@ -244,6 +247,7 @@ function renderMissions() {
             </div>
           </div>
         </div>`;
+        // removed                 <span class="tag tag-${m.tag}">${m.tag}</span>
     })
     .join("");
 }

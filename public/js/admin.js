@@ -23,6 +23,7 @@ async function doLogin() {
   });
   if (res.ok) {
     adminPw = pw;
+    localStorage.setItem("adminPass", pw);
     document.querySelector("#login-screen").style.display = "none";
     document.querySelector("#app").style.display          = "block";
     init();
@@ -98,7 +99,18 @@ function adminApi(method, path, body) {
 }
 
 // ─── EVENT LISTENERS ──────────────────────────────────────────────────────────
-function addEventListeners() {
+async function addEventListeners() {
+  if(localStorage.getItem("adminPass")) {
+    adminPw = localStorage.getItem("adminPass");
+    const res = await fetch("/api/admin/auth", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ password: adminPw }),
+  });
+    document.querySelector("#login-screen").style.display = "none";
+    document.querySelector("#app").style.display          = "block";
+    init();
+  }
   document.querySelector("#login-button").addEventListener("click", doLogin);
   document.querySelector("#reset-button").addEventListener("click", doReset);
   document.querySelector("#close-question-button").addEventListener("click", closeQuestion);
@@ -107,7 +119,7 @@ function addEventListeners() {
   document.querySelector("#push-custom-button").addEventListener("click", pushCustom);
 
   document.querySelectorAll(".tabs .tab").forEach((t) =>
-    t.addEventListener("click", () => switchTab(t.dataset.choice)),
+    t.addEventListener("click", (e) => switchTab(t.dataset.choice, e)),
   );
   document.querySelectorAll(".nav-btn").forEach((t) =>
     t.addEventListener("click", (e) => switchPanel(t.dataset.panel, e)),
@@ -119,10 +131,29 @@ function addEventListeners() {
 
 // ─── PANEL / TAB SWITCHING ────────────────────────────────────────────────────
 function switchPanel(name, e) {
-  document.querySelectorAll(".panel-tab").forEach((t) => t.classList.remove("active"));
-  document.querySelectorAll(".panel-content").forEach((p) => p.classList.remove("active"));
-  if (e) e.currentTarget.classList.add("active");
-  document.querySelector(`#panel-${name}`).classList.add("active");
+  document
+    .querySelectorAll(".nav-btn[data-panel], .panel-tab[data-panel], .tab[data-panel]")
+    .forEach((t) => t.classList.remove("active"));
+
+  document.querySelectorAll(".panel-content").forEach((p) => {
+    p.classList.remove("active");
+    p.style.display = "none";
+  });
+
+  if (e?.currentTarget) {
+    e.currentTarget.classList.add("active");
+  } else {
+    const trigger = document.querySelector(`.nav-btn[data-panel="${name}"]`)
+      || document.querySelector(`.panel-tab[data-panel="${name}"]`)
+      || document.querySelector(`.tab[data-panel="${name}"]`);
+    if (trigger) trigger.classList.add("active");
+  }
+
+  const panel = document.querySelector(`#panel-${name}`);
+  if (panel) {
+    panel.classList.add("active");
+    panel.style.display = "block";
+  }
 }
 
 // Panel tabs registered at top-level too (for tabs not inside .nav-btn)
@@ -130,11 +161,19 @@ document.querySelectorAll(".tab[data-panel]").forEach((t) =>
   t.addEventListener("click", (e) => switchPanel(t.dataset.panel, e)),
 );
 
-function switchTab(name) {
-  document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+function switchTab(name, e) {
+  document.querySelectorAll(".tabs .tab").forEach((t) => t.classList.remove("active"));
   document.querySelectorAll(".tab-content").forEach((t) => t.classList.remove("active"));
-  event.target.classList.add("active");
-  document.querySelector("#tab-" + name).classList.add("active");
+
+  if (e?.currentTarget) {
+    e.currentTarget.classList.add("active");
+  } else {
+    const fallbackTab = document.querySelector(`.tabs .tab[data-choice="${name}"]`);
+    if (fallbackTab) fallbackTab.classList.add("active");
+  }
+
+  const tabPanel = document.querySelector("#tab-" + name);
+  if (tabPanel) tabPanel.classList.add("active");
 }
 
 // ─── FEED ─────────────────────────────────────────────────────────────────────
