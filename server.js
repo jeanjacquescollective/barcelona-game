@@ -498,8 +498,10 @@ app.post("/api/admin/question", adminAuth, (req, res) => {
   if (presetIndex !== undefined && PRESET_QUESTIONS[presetIndex]) {
     q = { ...PRESET_QUESTIONS[presetIndex] };
   } else {
-    if (!question || !answer)
+    if (!question || !answer && type !== "image")
       return res.status(400).json({ error: "question and answer required" });
+    if(!question && type === "image")
+      return res.status(400).json({ error: "question required for image type" });
     q = {
       type: type || "open",
       question,
