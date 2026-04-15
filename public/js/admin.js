@@ -298,7 +298,8 @@ async function pushCustom() {
   const answer   = document.querySelector("#q-answer").value.trim();
   const pts      = parseInt(document.querySelector("#q-pts").value) || 20;
 
-  if (!question || !answer) return showToast("Vul vraag en antwoord in", "err");
+  if (!question || !answer && type !== "image") return showToast("Vul vraag en antwoord in", "err");
+  if (type === "image" && !question) return showToast("Vul een vraag in voor de image type", "err");
 
   let options = [];
   if (type === "mcq") {
