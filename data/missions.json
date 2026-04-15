@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "title": "Maak een groepsfoto met een vreemde",
+    "title": "Maak een groepsfoto met een onbekende",
     "desc": "Vraag een willekeurige voorbijganger om op de foto te gaan met de hele groep. Ze hoeven niet te poseren.",
     "tag": "sociaal",
     "pts": 10
@@ -9,14 +9,14 @@
   {
     "id": 2,
     "title": "Bestel iets in het Catalaans",
-    "desc": "Bestellen doe je in het Catalaans: 'Una aqua con gaz, si us plau'.",
+    "desc": "Bestellen doe je in het Catalaans: 'aigua amb gas, si us plau'.",
     "tag": "taal",
     "pts": 10
   },
   {
     "id": 3,
     "title": "Lokaal eten proeven",
-    "desc": "Iedereen proeft iets lokaal: pan con tomate, churros, patatas bravas of croquetas. Groepsfoto met het eten.",
+    "desc": "Iedereen proeft iets lokaal: pan con tomate, churros, patatas bravas of croquetas.",
     "tag": "eten",
     "pts": 10
   },
@@ -36,36 +36,36 @@
   },
   {
     "id": 6,
-    "title": "Raad het beroep",
-    "desc": "Wijs een willekeurige voorbijganger aan — iedereen fluistert wat ze denken dat hun beroep is. Daarna mag één iemand het vragen. Wie zat er het dichtst bij wint een punt extra.",
-    "tag": "spel",
-    "pts": 10
+    "title": "Wifi netwerknaam spotten",
+    "desc": "Zoek een grappige of opvallende wifi netwerknaam in de buurt. Screenshot nemen.",
+    "tag": "durf",
+    "pts": 15
   },
   {
     "id": 7,
     "title": "Schrijf iets op het zand",
-    "desc": "Ga naar het strand en schrijf de naam van de groep of iets grappigs in het zand. Foto van bovenaf.",
+    "desc": "Ga naar het strand en schrijf de naam van de groep of iets grappigs in het zand. ",
     "tag": "strand",
     "pts": 10
   },
   {
     "id": 8,
     "title": "Kopieer een standbeeld",
-    "desc": "Vind een standbeeld of sculptuur en kopieer de pose met de hele groep. Foto naast het origineel.",
+    "desc": "Vind een standbeeld of sculptuur en kopieer de pose met de hele groep. .",
     "tag": "kunst",
     "pts": 15
   },
   {
     "id": 9,
     "title": "UI-fail in het wild",
-    "desc": "Vind een bordje, ATM, automaat of touchscreen in de stad met een slechte user interface. Maak een foto en noteer waarom het slecht ontworpen is (10 sec video-uitleg).",
+    "desc": "Vind een bordje, ATM, automaat of touchscreen in de stad met een slechte user interface (niet die van de Dow Jones). ",
     "tag": "web",
     "pts": 15
   },
   {
     "id": 10,
     "title": "AR-selfie bij Sagrada Família",
-    "desc": "Gebruik een AR-filter op Instagram of Snapchat voor een creatieve foto voor de Sagrada Família. Filter moet zichtbaar zijn in het beeld.",
+    "desc": "Gebruik een AR-filter op Instagram of Snapchat voor een creatieve foto voor de Sagrada Família.",
     "tag": "virtual",
     "pts": 20
   },
@@ -78,11 +78,12 @@
   },
   {
     "id": 12,
-    "title": "Serenade voor een vreemde",
-    "desc": "Eén vrijwilliger zingt 15 seconden een liedje voor een willekeurige voorbijganger. De rest staat er gewoon bij alsof het normaal is. Film het.",
-    "tag": "durf",
-    "pts": 20
+    "title": "Vind een Augustijn (bier) of prik en tik bruiswater",
+    "desc": "Zoek een café of winkel waar ze Augustijn bier of Prik en Tik bruiswater verkopen. Foto van het drankje. ",
+    "tag": "ontdekken",
+    "pts": 15
   },
+
   {
     "id": 13,
     "title": "Vind de beste typografie",
@@ -109,6 +110,13 @@
     "title": "Barcelona in één GIF",
     "desc": "Maak een serie van 5+ foto's op dezelfde locatie met kleine verandering (mensen, licht, pose) en monteer het tot een GIF op giphy.com of ezgif.com. Deel de link.",
     "tag": "creatief",
+    "pts": 20
+  },
+  {
+    "id": 17,
+    "title": "Print het logo van Artevelde",
+    "desc": "Vind een printer in de buurt (makerspace, bibliotheek, winkel) en print het logo van Artevelde. Foto van het resultaat.",
+    "tag": "durf",
     "pts": 20
   }
 ]
