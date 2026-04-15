@@ -2,12 +2,11 @@ import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import path from 'path';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { setupWebSocket } from './src/broadcast.js';
 import { bootstrap, startRealtimeSync } from './src/supabase.js';
-import { UPLOADS_DIR } from './src/config.js';
+import './src/cloudinary.js'; // Initialiseer Cloudinary
 
 import missionsRouter from './src/routes/missions.js';
 import teamsRouter    from './src/routes/teams.js';
@@ -16,8 +15,6 @@ import quizRouter     from './src/routes/quiz.js';
 import adminRouter    from './src/routes/admin.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const app    = express();
 const server = http.createServer(app);

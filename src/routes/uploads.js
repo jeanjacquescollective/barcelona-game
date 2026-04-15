@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { state, getUploadsSorted } from '../state.js';
 import { saveTeam, saveUpload } from '../supabase.js';
 import { upload } from '../upload.js';
+import { uploadToCloudinary } from '../cloudinary.js';
 
 const router = Router();
 
@@ -15,31 +16,37 @@ router.post('/teams/:teamId/upload', upload.single('file'), async (req, res) => 
 
   console.log(`Received upload from team ${team.name}:`, req.file.originalname);
 
-  const record = {
-    id: uuidv4(),
-    teamId: req.params.teamId,
-    teamName: team.name,
-    teamColor: team.color,
-    missionId: parseInt(req.body.missionId),
-    activity: req.body.activity,
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    url: `/uploads/${req.file.filename}`,
-    timestamp: Date.now(),
-  };
-
-  state.uploads[record.id] = record;
-  team.uploads.push(record.id);
-
   try {
-    await Promise.all([saveUpload(record), saveTeam(team)]);
-  } catch (e) {
-    console.error('Failed to persist upload:', e.message || e);
-    return res.status(500).json({ error: 'Upload opslaan mislukt' });
-  }
+    // Upload naar Cloudinary
+    const { url, publicId } = await uploadToCloudinary(
+      req.file.buffer,
+      `${uuidv4()}-${req.file.originalname}`,
+      'barcelona/uploads'
+    );
 
-  // Supabase realtime stuurt new_upload naar alle clients via de uploads-channel
-  res.json(record);
+    const record = {
+      id: uuidv4(),
+      teamId: req.params.teamId,
+      teamName: team.name,
+      teamColor: team.color,
+      missionId: parseInt(req.body.missionId),
+      activity: req.body.activity,
+      filename: publicId,
+      originalName: req.file.originalname,
+      url: url, // Cloudinary URL
+      timestamp: Date.now(),
+    };
+
+    state.uploads[record.id] = record;
+    team.uploads.push(record.id);
+
+    await Promise.all([saveUpload(record), saveTeam(team)]);
+    res.json(record);
+  } catch (e) {
+    console.error('Failed to upload to Cloudinary or persist:', e.message || e);
+    return res.status(500).json({ error: 'Upload mislukt' });
+  }
 });
 
 export default router;
+

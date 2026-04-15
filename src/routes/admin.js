@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import { state, getLeaderboard, safeQuestion } from '../state.js';
-import { ADMIN_PASSWORD, UPLOADS_DIR, DATA_DIR } from '../config.js';
+import { ADMIN_PASSWORD, DATA_DIR } from '../config.js';
 import { supabase, realtimeState, saveTeam } from '../supabase.js';
 import { broadcast } from '../broadcast.js';
 import { adminAuth } from '../middleware.js';
@@ -145,12 +145,6 @@ router.post('/reset', adminAuth, async (req, res) => {
   } catch (e) {
     console.error('Failed to reset Supabase data:', e.message || e);
   }
-
-  try {
-    fs.readdirSync(UPLOADS_DIR).forEach((f) => {
-      try { fs.unlinkSync(path.join(UPLOADS_DIR, f)); } catch (_) {}
-    });
-  } catch (_) {}
 
   broadcast({ type: 'reset' });
   res.json({ ok: true });
