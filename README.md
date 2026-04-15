@@ -62,6 +62,53 @@ Deel de URL met je groep zodat iedereen op hetzelfde spel zit.
 - Max uploadgrootte: 20MB per bestand.
 - De server ondersteunt tot ~50 gelijktijdige verbindingen probleemloos.
 
+## Supabase persistentie + realtime (aanbevolen voor Barcelona live gebruik)
+
+De server ondersteunt nu een Supabase-first modus:
+- teams en uploads worden persistent opgeslagen in Supabase
+- bij opstart wordt alle data opnieuw geladen
+- wijzigingen worden via Supabase Realtime gesynchroniseerd (ook tussen meerdere server-instanties)
+
+### 1. Environment variabelen instellen
+
+Zet in je hosting environment:
+
+```bash
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SERVICE_KEY=<service-role-key>
+ADMIN_PASSWORD=<sterk-wachtwoord>
+```
+
+### 2. Tabellen aanmaken in Supabase SQL editor
+
+```sql
+create table if not exists public.teams (
+   id uuid primary key,
+   payload jsonb not null,
+   updated_at timestamptz not null default now()
+);
+
+create table if not exists public.uploads (
+   id uuid primary key,
+   payload jsonb not null,
+   created_at timestamptz not null default now()
+);
+
+create index if not exists uploads_created_at_idx on public.uploads (created_at desc);
+```
+
+### 3. Realtime activeren
+
+In Supabase dashboard:
+1. Ga naar Database → Replication
+2. Voeg tables `public.teams` en `public.uploads` toe aan publication `supabase_realtime`
+
+### 4. Deployment check
+
+Open admin pagina en controleer de statusregel:
+- "Supabase actief met Realtime-sync" = correct
+- "Supabase actief, maar Realtime ..." = fallback actief; check replication/publication settings
+
 ---
 
 ## Admin reset
