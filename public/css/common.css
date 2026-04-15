@@ -1,51 +1,92 @@
+/* ── DESIGN TOKENS ─────────────────────────────────────────────────────────── */
 :root {
-  --bg: #0f0e0c;
-  --surface: #1a1916;
-  --surface2: #242220;
-    --surface3: #2e2c29;
-
-  --border: rgba(255,255,255,0.08);
-  --border2: rgba(255,255,255,0.14);
-  --text: #f0ede8;
-  --muted: rgba(240,237,232,0.45);
-  --muted2: rgba(240,237,232,0.25);
-  --accent: #FF6B35;
-  --accent2: #ffb347;
-  --green: #27AE60;
-  --radius: 14px;
-  --radius-sm: 8px;
-    --r: 12px;
-  --r-sm: 8px;
-    --bg: #0f0e0c;
-  --surface: #1a1916;
+  /* Backgrounds */
+  --bg:       #0f0e0c;
+  --surface:  #1a1916;
   --surface2: #242220;
   --surface3: #2e2c29;
-  --border: rgba(255, 255, 255, 0.08);
+
+  /* Borders */
+  --border:  rgba(255, 255, 255, 0.08);
   --border2: rgba(255, 255, 255, 0.14);
-  --text: #f0ede8;
-  --muted: rgba(240, 237, 232, 0.45);
+
+  /* Text */
+  --text:   #f0ede8;
+  --muted:  rgba(240, 237, 232, 0.45);
   --muted2: rgba(240, 237, 232, 0.22);
-  --accent: #ff6b35;
-  --green: #27ae60;
-  --red: #e85d4a;
-  --blue: #4a90d9;
-  --yellow: #f4d03f;
-  --r: 12px;
-  --r-sm: 8px;
+
+  /* Accent colours */
+  --accent:  #ff6b35;
+  --accent2: #ffb347;
+  --green:   #27ae60;
+  --red:     #e85d4a;
+  --blue:    #4a90d9;
+  --yellow:  #f4d03f;
+
+  /* Radii — single canonical set used by both pages */
+  --r:    12px;
+  --r-sm:  8px;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── RESET ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
-  background: var(--bg);
-  color: var(--text);
+  background:  var(--bg);
+  color:       var(--text);
   font-family: 'DM Sans', sans-serif;
-  font-size: 15px;
+  font-size:   15px;
   line-height: 1.6;
-  min-height: 100vh;
+  min-height:  100vh;
 }
 
+/* ── SCROLLBAR ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-/* NAV TABS */
+/* ── STATUS DOT ─────────────────────────────────────────────────────────────── */
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #555;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.dot.live {
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ── TOAST ──────────────────────────────────────────────────────────────────── */
+/* Base: centred bottom (player page). Admin overrides position in admin.css.   */
+.toast {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  padding: 12px 20px;
+  font-size: 14px;
+  z-index: 200;
+  white-space: nowrap;
+  transition: transform 0.3s;
+  pointer-events: none;
+}
+.toast.show    { transform: translateX(-50%) translateY(0); }
+/* Semantic colour modifiers — both naming conventions supported */
+.toast.success,
+.toast.ok  { border-color: var(--green); color: var(--green); }
+.toast.error,
+.toast.err { border-color: var(--red);   color: var(--red);   }
+
+/* ── NAV TABS (player page) ─────────────────────────────────────────────────── */
 .nav {
   display: flex; gap: 4px;
   padding: 16px 20px 0;
@@ -54,7 +95,8 @@ body {
 }
 .nav::-webkit-scrollbar { display: none; }
 .nav-btn {
-  padding: 8px 16px; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 8px 16px;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
   font-size: 13px; font-weight: 500; cursor: pointer;
   border: 1px solid transparent; border-bottom: none;
   background: transparent; color: var(--muted); white-space: nowrap;
@@ -67,6 +109,15 @@ body {
 }
 .nav-btn:hover:not(.active) { color: var(--text); }
 
-/* VIEWS */
-.view { display: none; padding: 20px; }
+/* ── VIEWS ──────────────────────────────────────────────────────────────────── */
+.view        { display: none; padding: 20px; }
 .view.active { display: block; }
+
+/* ── NOTIFICATION BADGE ─────────────────────────────────────────────────────── */
+.notif {
+  display: inline-block;
+  background: var(--accent); color: #fff;
+  border-radius: 20px; font-size: 10px; padding: 1px 5px;
+  font-family: 'DM Mono', monospace; margin-left: 4px;
+  vertical-align: middle;
+}
