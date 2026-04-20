@@ -77,6 +77,7 @@ Zet in je hosting environment:
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_SERVICE_KEY=<service-role-key>
 ADMIN_PASSWORD=<sterk-wachtwoord>
+APP_PASSWORD=<wachtwoord-voor-hele-app>
 ```
 
 ### 2. Tabellen aanmaken in Supabase SQL editor

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { setupWebSocket } from './src/broadcast.js';
 import { bootstrap, startRealtimeSync } from './src/supabase.js';
 import './src/cloudinary.js'; // Initialiseer Cloudinary
+import { appPasswordAuth } from './src/middleware.js';
 
 import missionsRouter from './src/routes/missions.js';
 import teamsRouter    from './src/routes/teams.js';
@@ -21,6 +22,7 @@ const server = http.createServer(app);
 setupWebSocket(server);
 
 app.use(express.json());
+app.use(appPasswordAuth);
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api', missionsRouter);

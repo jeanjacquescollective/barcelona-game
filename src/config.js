@@ -4,6 +4,7 @@ import path from 'path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'bcn5';
+export const APP_PASSWORD = process.env.APP_PASSWORD || '';
 
 export const TEAM_COLORS = [
   '#E85D4A', '#4A90D9', '#27AE60', '#9B59B6',
